@@ -37,7 +37,7 @@
  * 6. ASSIGNMENT
  * This Agreement is personal to LICENSEE and any rights or obligations assigned by LICENSEE without the prior written consent of BROAD shall be null and void.
  *
- * 7. MISCELLANEOUS
+v * 7. MISCELLANEOUS
  * 7.1 Export Control. LICENSEE gives assurance that it will comply with all United States export control laws and regulations controlling the export of the PROGRAM, including, without limitation, all Export Administration Regulations of the United States Department of Commerce. Among other things, these laws and regulations prohibit, or require a license for, the export of certain types of software to specified countries.
  * 7.2 Termination. LICENSEE shall have the right to terminate this Agreement for any reason upon prior written notice to BROAD. If LICENSEE breaches any provision hereunder, and fails to cure such breach within thirty (30) days, BROAD may terminate this Agreement immediately. Upon termination, LICENSEE shall provide BROAD with written assurance that the original and all copies of the PROGRAM have been destroyed, except that, upon prior written authorization from BROAD, LICENSEE may retain a copy for archive purposes.
  * 7.3 Survival. The following provisions shall survive the expiration or termination of this Agreement: Articles 1, 3, 4, 5 and Sections 2.2, 2.3, 7.3, and 7.4.
@@ -47,105 +47,118 @@
  * 7.7 Governing Law. This Agreement shall be construed, governed, interpreted and applied in accordance with the internal laws of the Commonwealth of Massachusetts, U.S.A., without regard to conflict of laws principles.
  */
 
-#include "Histogram.h"
+#include "SnowTools/Histogram.h"
+#include "SnowTools/SnowUtils.h"
 #include <fstream>
 #include <cmath>
 #include <algorithm>
+#include <sstream>
 
 #define BINARY_SEARCH 1
 
+#define DEBUG_HISTOGRAM
+
+namespace SnowTools {
+
+Histogram::Histogram(const int32_t& start, const int32_t& end, const uint32_t& width)
+{
+  
+  assert(end >= start);
+
+  Bin bin;
+  bin.bounds.first = start;
+
+  int32_t next_end = start + width - 1; // -1 because width=1 is bound.first = bounds.second
+
+  while (next_end < end) 
+    {
+      // finish this bin
+      bin.bounds.second = next_end;
+      m_bins.push_back(bin);
+      m_ind.push_back(bin.bounds.first); // make the index for the lower bound
+
+      // start a new one
+      bin.bounds.first = next_end+1;
+      next_end += width;
+    }
+  
+  // finish the last bin
+  bin.bounds.second = end;
+  m_bins.push_back(bin);
+  m_ind.push_back(bin.bounds.first);
+
+  // add a final bin
+  bin.bounds.first = end+1;
+  bin.bounds.second = 250000000;
+  m_bins.push_back(bin);
+  m_ind.push_back(bin.bounds.first);
+
+}
+
 void Histogram::toCSV(std::ofstream &fs) {
 
-  for (auto& i : bins) 
+  for (auto& i : m_bins) 
     fs << i << std::endl;
 
 }
-void Histogram::removeSpan(const S &span) {
-
-  //shortcut
-  if (span == INTERCHR)
-    --bins.back();
-
-#ifdef BINARY_SEARCH
-  std::vector<size_t>::const_iterator it = std::upper_bound(m_ind.begin(), m_ind.end(), span);
-  size_t i = it - m_ind.begin()-1;
-  if (bins[i].contains(span)) {
-    --bins[i];
-    return;
-  }
-#else
-  for (auto& bin : bins)
-    if (bin.contains(span)) {
-      --bin;
-      return;
-    }
-#endif
-  std::cerr << "span not removed from any bin " << span << std::endl;
-  exit(EXIT_FAILURE);
+void Histogram::removeElem(const int32_t& elem) {
+  --m_bins[retrieveBinID(elem)];
 }
 
-void Histogram::addSpan(const S &span) {
+void Histogram::addElem(const int32_t& elem) {
+  ++m_bins[retrieveBinID(elem)];
+}
 
-  //shortcut
-  if (span == INTERCHR)
-    ++bins.back();
+std::string Histogram::toFileString() const {
+  std::stringstream ss;
+  for (auto& i : m_bins)
+    if (i.m_count)
+      ss << i.bounds.first << "_" << i.bounds.second << "_" << i.m_count << ",";
+  return(cutLastChar(ss.str())); // trim off last comma
   
-  // new
-  //BinIntervalVector biv;
-  //m_bin_tree.findOverlapping(span, span, biv);
-  //if (biv.size())
-  //  return true;
-  //return false;
-
-  assert(bins.size());
-
-#ifdef BINARY_SEARCH
-  //binary search
-  std::vector<size_t>::const_iterator it = std::upper_bound(m_ind.begin(), m_ind.end(), span);
-  size_t i = it - m_ind.begin()-1;
-  if (bins[i].contains(span)) {
-    ++bins[i];
-    return;
-  }
-#else
-  for (auto& bin : bins)
-    if (bin.contains(span)) {
-      ++bin;
-      return;
-    }
-#endif
-
-  //std::cerr << " size " << bins.size() << " i " << i << " bounds " << bins[i].bounds.first << "-" << bins[i].bounds.second << std::endl;
-  std::cerr << "span not inserted into any bin " << span << std::endl;
-  exit(EXIT_FAILURE);
 }
 
-size_t Histogram::binForSpan(S span) const {
+size_t Histogram::retrieveBinID(const int32_t& elem) const {
 
-  //shortcut
-  if (span == INTERCHR)
-    return (bins.size() - 1);
+  if (elem < m_bins[0].bounds.first) 
+    {
+#ifdef DEBUG_HISTOGRAM
+      std::cerr << "removeElem: elem of value " <<  elem << " is below min bin " << m_bins[0] << std::endl;
+      exit(1);
+#endif
+      return 0;
+    }
+
+  if (elem > m_bins.back().bounds.second) 
+    {
+#ifdef DEBUG_HISTOGRAM
+      std::cerr << "removeElem: elem of value " <<  elem << " is above max bin " << m_bins.back() << std::endl;
+      exit(1);
+#endif
+      return m_bins.size();
+    }
+
+
+  if (m_bins[0].contains(elem)) 
+    return 0;
+  if (m_bins.back().contains(elem)) 
+    return m_bins.size();
 
 #ifdef BINARY_SEARCH
   // binary search
-  std::vector<size_t>::const_iterator it = std::upper_bound(m_ind.begin(), m_ind.end(), span);
+  std::vector<int32_t>::const_iterator it = std::upper_bound(m_ind.begin(), m_ind.end(), elem);
   size_t i = it - m_ind.begin()-1;
+  assert(i < m_ind.size());
   return i;
 #else
-  for (size_t i = 0; i < bins.size(); i++) {
-    if (bins[i].contains(span)) {
+  for (size_t i = 0; i < m_bins.size(); i++) {
+    if (m_bins[i].contains(elem)) {
       return i;
     }
   }
 #endif
-  std::cerr << "bin not found for " << span << std::endl;
+  std::cerr << "bin not found for element " << elem << std::endl;
   return 0;
-  //  for (size_t i = 0; i < bins.size(); i++) {
-  //  if (bins[i].contains(span)) {
-  //    return i;
-  //  }
-  // }
-  //return 0;
 }
 
 void Histogram::initialSpans(size_t num_bins, std::vector<S>* pspanv, size_t min_bin_width) {
@@ -172,6 +185,8 @@ void Histogram::initialSpans(size_t num_bins, std::vector<S>* pspanv, size_t min
     std::cerr << "Events: " << pspanv->size() << " Num Bins " << num_bins << " quantile count (hist height) " << bin_cut << std::endl;
   }
 
+  std::cout << "...Events per bin: " << bin_cut << " num bins " << num_bins << std::endl;
+
   S last_span = 0;
   size_t tcount = 0; // count events put into bins
 
@@ -186,7 +201,7 @@ void Histogram::initialSpans(size_t num_bins, std::vector<S>* pspanv, size_t min
 
 	// finalize, save old bin
 	bin.bounds.second = last_span;
-	bins.push_back(bin);
+	m_bins.push_back(bin);
 	
 	// new bin
 	bin.bounds.first = last_span+1;
@@ -204,31 +219,23 @@ void Histogram::initialSpans(size_t num_bins, std::vector<S>* pspanv, size_t min
   }
   // add the last bin
   bin.bounds.second = INTERCHR-1; 
-  bins.push_back(bin);
+  m_bins.push_back(bin);
 
   // add a bin for interchr events
   bin.bounds = {INTERCHR, INTERCHR};
   bin.m_count = pspanv->size() - intra;
-  bins.push_back(bin);
+  m_bins.push_back(bin);
 
   // make the indices of lower bound
-  for (auto& i : bins)
+  for (auto& i : m_bins)
     m_ind.push_back(i.bounds.first);
 
-  if (bins.size() != (num_bins+1)) {
+  if (m_bins.size() != (num_bins+1)) {
     std::cout << " bin cut " << bin_cut << std::endl;
-    std::cout << " num bins " << num_bins << " bins.size() " << bins.size() << std::endl;
+    std::cout << " num bins " << num_bins << " bins.size() " << m_bins.size() << std::endl;
     //assert(bins.size() == (num_bins+1));
   }
 
-  // convert to interval tree
-  /*
-  std::sort(bins.begin(), bins.end());
-  BinIntervalVector biv;
-  for (auto& i : bins)
-    biv.push_back(BinInterval(i.bounds.first, i.bounds.second, i));
-  m_bin_tree = BinIntervalTree(biv);
-  */
 }
 
 bool Bin::operator < (const Bin& b) const {
@@ -236,9 +243,9 @@ bool Bin::operator < (const Bin& b) const {
 
 }
 
-bool Bin::contains(const S &span) const {
+bool Bin::contains(const int32_t& elem) const {
 
-  return (span >= bounds.first && span <= bounds.second); 
+  return (elem >= bounds.first && elem <= bounds.second); 
 
 
 }
@@ -254,4 +261,6 @@ Bin& Bin::operator--() {
   assert(m_count > 0); 
   --m_count;
   return *this;
+}
+
 }

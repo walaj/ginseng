@@ -1,5 +1,5 @@
-#ifndef SWAP_HISTOGRAM_H__
-#define SWAP_HISTOGRAM_H__
+#ifndef SNOWTOOLS_HISTOGRAM_H__
+#define SNOWTOOLS_HISTOGRAM_H__
 
 #include <iostream>
 #include <cassert>
@@ -12,22 +12,24 @@
 
 class Bin;
 
-typedef EInterval<Bin> BinInterval;
-typedef EIntervalTree<Bin> BinIntervalTree;
+typedef TInterval<Bin> BinInterval;
+typedef IntervalTree<Bin> BinIntervalTree;
 typedef std::vector<BinInterval> BinIntervalVector;
 
 typedef uint32_t S;
 
 #define INTERCHR 250000000
 
-class Matrix;
-class Histogram;
+namespace SnowTools {
 
-/** Stores one bin in a histogram
+  class Matrix;
+  class Histogram;
+
+/** Stores one bin in a Histogram
  */
 class Bin {
 
-  friend Histogram;
+  friend class Histogram;
 
  public:
   
@@ -44,7 +46,7 @@ class Bin {
       out << b.bounds.first << "," << b.bounds.second << "," << b.m_count;
       return out;
     }
-    
+
     /** Return the number of counts in this histogram bin 
      */
     size_t getCount() const { return m_count; }
@@ -55,10 +57,10 @@ class Bin {
      */
 
     /** Check if this bin contains a value
-     * @param span Distance value to check if its in this range
+     * @param elem Value to check if its in this range
      * @return true if the value is within the range
      */
-    bool contains(const S &span) const; 
+    bool contains(const int32_t& elem) const; 
 
     /** Define bin comparison operator by location of left bound, then right */
     bool operator < (const Bin& b) const;
@@ -75,10 +77,10 @@ class Bin {
 
  private:
     size_t m_count;
-    std::pair<S,S> bounds; //@! was"bin";
+    std::pair<int32_t, int32_t> bounds; //@! was"bin";
 };
 
-/** Class to store histogram of spans.
+/** Class to store histogram of numeric values.
  *
  * The bins of the Histogram are not uniformly spaced, and their ranges determined 
  * by partitioning the spans it tablulates into uniform quantiles when initialized
@@ -88,44 +90,59 @@ class Bin {
 class Histogram { 
 
  private:
-  
-  std::vector<Bin> bins;
 
-  std::vector<size_t> m_ind;
-  //BinIntervalTree m_bin_tree;
-  
+  std::vector<int32_t> m_ind;
 
  public:
 
+  std::vector<Bin> m_bins;
+  /** Construct an empty histogram
+   */
+  Histogram() {}
+
+  /** Construct a new histogram with bins spaced evenly
+   */
+  Histogram(const int32_t& start, const int32_t& end, const uint32_t& width);
+
+  std::string toFileString() const;
+
   friend std::ostream& operator<<(std::ostream &out, const Histogram &h) {
-    for (auto& i : h.bins)
+    for (auto& i : h.m_bins)
       out << i << std::endl;
     return out;
   }
 
+  /** Return iterator to the fist bin
+   */
+  std::vector<int32_t>::iterator begin() { return m_ind.begin(); }
+  
+  /** Return iterator to the last bin
+   */
+  std::vector<int32_t>::iterator end() { return m_ind.end(); }
+  
   /** initialize histogram from a vector of spans 
    */
   void initialSpans(size_t num_bins, std::vector<S>* pspanv, size_t min_bin_width = 0);
 
-  /** Add a span to the histogram
-   * @param span Length of event to add
+  /** Add an element to the histogram
+   * @param elem Length of event to add
    */
-  void addSpan(const S &span);
+  void addElem(const int32_t &elem);
 
   /** Remove a span from the histogram
    * @param span Length of event to remove
    */
-  void removeSpan(const S &span);
+  void removeElem(const int32_t &elem);
 
   /** Output to CSV file like: bin_start,bin_end,count
    */
   void toCSV(std::ofstream &fs);
 
-  /**
+  /** Return the total number of elements in the Histogram
    */
   size_t totalCount() const {
     size_t tot = 0;
-    for (auto&  i : bins)
+    for (auto&  i : m_bins)
       tot += i.getCount();
     return tot;
   }
@@ -134,19 +151,20 @@ class Histogram {
    * @param i Bin index
    * @return number of events in histogram bin
    */
-  S binCount(size_t i) { return bins[i].getCount(); }
+  int32_t binCount(size_t i) { return m_bins[i].getCount(); }
 
   /** Get number of bins in histogram
    * @return Number of bins in histogram
    */
-  size_t numBins() { return bins.size(); }
+  size_t numBins() { return m_bins.size(); }
 
   /** Find bin corresponding to a span
-   * @param span Event length
+   * @param elem Event length
    * @return Bin containing event length
    */
-  size_t binForSpan(S span) const;
+  size_t retrieveBinID(const int32_t& elem) const;
 
 };
 
+}
 #endif

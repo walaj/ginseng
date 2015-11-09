@@ -4,6 +4,7 @@ AC_PREREQ(2.59) ## specificy version of autoconf
 AC_INIT(swap, 0.0, jwala@broadinstitute.org)
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR([src/swap.cpp]) ## just checks that this file existss
+AM_MAINTAINER_MODE([disable])
 ##AC_CONFIG_HEADER([config.h])
 ##m4_include([m4/m4_ax_openmp.m4])
 
@@ -22,37 +23,6 @@ AC_SEARCH_LIBS([gzopen],[z],,[AC_MSG_ERROR([libz not found, please install zlib 
 AC_SEARCH_LIBS([clock_gettime], [rt], [AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [clock_getttime found])], )
 AC_SEARCH_LIBS([pthread_create], [pthread], [AC_DEFINE([HAVE_PTHREAD], [1], [pthread found])], )
 
-########
-### CHECK FOR SNOW TOOLS
-########
-AC_ARG_WITH(snowtools, AS_HELP_STRING([--with-snowtools=PATH],
-	[specify directory containing the SnowTools library]))
-if test "$with_snowtools" -a -d "$with_snowtools"; then
-    snowtools_ldflags="-L$with_snowtools"
-    snowtools_include="-Iwith_snowtools"
-    snowtools_libs="-lsnowtools"
-else
-    snowstable="SnowToolsStable/src"
-    snowcurrent="/xchip/gistic/Jeremiah/GIT/isva/SnowTools/src"
-    snowtools_ldflags="-L$snowcurrent"
-    snowtools_include="-I$snowcurrent"
-    snowtools_libs="-lsnowtools"
-fi  
-
-# If it is installed (with make install) it will be in {path}/include/bamtools
-# and {path}/lib/bamtools. Both variants are handled here
-##AC_ARG_WITH(libplinkio, AS_HELP_STRING([--with-libplinkio=PATH],
-##	[specify directory containing the libplinkio library (https://github.com/mfranberg/libplinkio)]))
-
-##if test "$with_plinkio" -a -d "$with_plinkio"; then
-##    plinkio_ldflags="-L$with_plinkio/lib"
-##    plinkio_include="-I$with_plinkio/include"
-##else
-##    plink=/xchip/gistic/Jeremiah/GIT/libplinkio/bin
-##    plinkio_ldflags="-L$plink/lib"
-##    plinkio_include="-I$plink/include"
-##fi
-
 # Only fail on warnings when the --enable-development flag is passed into configure
 AC_ARG_ENABLE(development, AS_HELP_STRING([--enable-development],
 	[Turn on development options, like failing compilation on warnings]))
@@ -64,16 +34,17 @@ fi
 AC_SUBST(AM_CXXFLAGS, "-Wall -Wextra $fail_on_warning -Wno-unknown-pragmas -std=c++11")
 AC_SUBST(CXXFLAGS, "-Ofast")
 AC_SUBST(CFLAGS, "-Ofast")
-AC_SUBST(CPPFLAGS, "$CPPFLAGS $snowtools_include")
-AC_SUBST(LDFLAGS, "$snowtools_ldflags $LDFLAGS")
+AC_SUBST(CPPFLAGS, "$CPPFLAGS")
+AC_SUBST(LDFLAGS, "$LDFLAGS")
 
 # We always need to specify to link in bamtools
-AC_SUBST(LIBS, "$snowtools_libs $LIBS")
+AC_SUBST(LIBS, "$LIBS")
 
 # Make sure the bamtools headers can be found
 ##AC_CHECK_HEADERS([plinkio/bed.h],,[AC_MSG_ERROR([The plinkio library must be installed (https://github.com/mfranberg/libplinkio). You can specify its path with the --with-plinkio=PATH option])])
 
 AC_CONFIG_FILES([Makefile
+	         SnowTools/src/Makefile
 		 src/Makefile])
 
 AC_OUTPUT

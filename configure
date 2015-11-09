@@ -668,6 +668,9 @@ CPPFLAGS
 LDFLAGS
 CXXFLAGS
 CXX
+MAINT
+MAINTAINER_MODE_FALSE
+MAINTAINER_MODE_TRUE
 am__untar
 am__tar
 AMTAR
@@ -731,8 +734,8 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+enable_maintainer_mode
 enable_dependency_tracking
-with_snowtools
 enable_development
 '
       ac_precious_vars='build_alias
@@ -1373,15 +1376,12 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-maintainer-mode  enable make rules and dependencies not useful
+			  (and sometimes confusing) to the casual installer
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-development    Turn on development options, like failing
                           compilation on warnings
-
-Optional Packages:
-  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
-  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --with-snowtools=PATH   specify directory containing the SnowTools library
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -2365,6 +2365,29 @@ am__tar='${AMTAR} chof - "$$tardir"'; am__untar='${AMTAR} xf -'
 
 
  ## just checks that this file existss
+
+{ $as_echo "$as_me:$LINENO: checking whether to enable maintainer-specific portions of Makefiles" >&5
+$as_echo_n "checking whether to enable maintainer-specific portions of Makefiles... " >&6; }
+    # Check whether --enable-maintainer-mode was given.
+if test "${enable_maintainer_mode+set}" = set; then
+  enableval=$enable_maintainer_mode; USE_MAINTAINER_MODE=$enableval
+else
+  USE_MAINTAINER_MODE=no
+fi
+
+  { $as_echo "$as_me:$LINENO: result: $USE_MAINTAINER_MODE" >&5
+$as_echo "$USE_MAINTAINER_MODE" >&6; }
+   if test $USE_MAINTAINER_MODE = yes; then
+  MAINTAINER_MODE_TRUE=
+  MAINTAINER_MODE_FALSE='#'
+else
+  MAINTAINER_MODE_TRUE='#'
+  MAINTAINER_MODE_FALSE=
+fi
+
+  MAINT=$MAINTAINER_MODE_TRUE
+
+
 ##AC_CONFIG_HEADER([config.h])
 ##m4_include([m4/m4_ax_openmp.m4])
 
@@ -5120,41 +5143,6 @@ _ACEOF
 fi
 
 
-########
-### CHECK FOR SNOW TOOLS
-########
-
-# Check whether --with-snowtools was given.
-if test "${with_snowtools+set}" = set; then
-  withval=$with_snowtools;
-fi
-
-if test "$with_snowtools" -a -d "$with_snowtools"; then
-    snowtools_ldflags="-L$with_snowtools"
-    snowtools_include="-Iwith_snowtools"
-    snowtools_libs="-lsnowtools"
-else
-    snowstable="SnowToolsStable/src"
-    snowcurrent="/xchip/gistic/Jeremiah/GIT/isva/SnowTools/src"
-    snowtools_ldflags="-L$snowcurrent"
-    snowtools_include="-I$snowcurrent"
-    snowtools_libs="-lsnowtools"
-fi
-
-# If it is installed (with make install) it will be in {path}/include/bamtools
-# and {path}/lib/bamtools. Both variants are handled here
-##AC_ARG_WITH(libplinkio, AS_HELP_STRING([--with-libplinkio=PATH],
-##	[specify directory containing the libplinkio library (https://github.com/mfranberg/libplinkio)]))
-
-##if test "$with_plinkio" -a -d "$with_plinkio"; then
-##    plinkio_ldflags="-L$with_plinkio/lib"
-##    plinkio_include="-I$with_plinkio/include"
-##else
-##    plink=/xchip/gistic/Jeremiah/GIT/libplinkio/bin
-##    plinkio_ldflags="-L$plink/lib"
-##    plinkio_include="-I$plink/include"
-##fi
-
 # Only fail on warnings when the --enable-development flag is passed into configure
 # Check whether --enable-development was given.
 if test "${enable_development+set}" = set; then
@@ -5172,19 +5160,19 @@ CXXFLAGS="-Ofast"
 
 CFLAGS="-Ofast"
 
-CPPFLAGS="$CPPFLAGS $snowtools_include"
+CPPFLAGS="$CPPFLAGS"
 
-LDFLAGS="$snowtools_ldflags $LDFLAGS"
+LDFLAGS="$LDFLAGS"
 
 
 # We always need to specify to link in bamtools
-LIBS="$snowtools_libs $LIBS"
+LIBS="$LIBS"
 
 
 # Make sure the bamtools headers can be found
 ##AC_CHECK_HEADERS([plinkio/bed.h],,[AC_MSG_ERROR([The plinkio library must be installed (https://github.com/mfranberg/libplinkio). You can specify its path with the --with-plinkio=PATH option])])
 
-ac_config_files="$ac_config_files Makefile src/Makefile"
+ac_config_files="$ac_config_files Makefile SnowTools/src/Makefile src/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -5328,6 +5316,13 @@ else
   am__EXEEXT_FALSE=
 fi
 
+if test -z "${MAINTAINER_MODE_TRUE}" && test -z "${MAINTAINER_MODE_FALSE}"; then
+  { { $as_echo "$as_me:$LINENO: error: conditional \"MAINTAINER_MODE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+$as_echo "$as_me: error: conditional \"MAINTAINER_MODE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
 if test -z "${AMDEP_TRUE}" && test -z "${AMDEP_FALSE}"; then
   { { $as_echo "$as_me:$LINENO: error: conditional \"AMDEP\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
@@ -5838,6 +5833,7 @@ do
   case $ac_config_target in
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "SnowTools/src/Makefile") CONFIG_FILES="$CONFIG_FILES SnowTools/src/Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
 
   *) { { $as_echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5

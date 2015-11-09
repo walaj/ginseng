@@ -322,7 +322,7 @@ on `(hostname || uname -n) 2>/dev/null | sed 1q`
 "
 
 # Files that config.status was made for.
-config_files=" Makefile src/Makefile"
+config_files=" Makefile SnowTools/src/Makefile src/Makefile"
 config_commands=" depfiles"
 
 ac_cs_usage="\
@@ -450,6 +450,7 @@ do
   case $ac_config_target in
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "SnowTools/src/Makefile") CONFIG_FILES="$CONFIG_FILES SnowTools/src/Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
 
   *) { { $as_echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
@@ -540,10 +541,13 @@ S["DEPDIR"]=".deps"
 S["OBJEXT"]="o"
 S["EXEEXT"]=""
 S["ac_ct_CXX"]="g++"
-S["CPPFLAGS"]=" -I/xchip/gistic/Jeremiah/GIT/isva/SnowTools/src"
-S["LDFLAGS"]="-L/xchip/gistic/Jeremiah/GIT/isva/SnowTools/src "
+S["CPPFLAGS"]=""
+S["LDFLAGS"]=""
 S["CXXFLAGS"]="-Ofast"
 S["CXX"]="g++"
+S["MAINT"]="#"
+S["MAINTAINER_MODE_FALSE"]=""
+S["MAINTAINER_MODE_TRUE"]="#"
 S["am__untar"]="${AMTAR} xf -"
 S["am__tar"]="${AMTAR} chof - \"$$tardir\""
 S["AMTAR"]="${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run tar"
@@ -570,7 +574,7 @@ S["INSTALL_PROGRAM"]="${INSTALL}"
 S["target_alias"]=""
 S["host_alias"]=""
 S["build_alias"]=""
-S["LIBS"]="-lsnowtools -lpthread -lrt -lz "
+S["LIBS"]="-lpthread -lrt -lz "
 S["ECHO_T"]=""
 S["ECHO_N"]="-n"
 S["ECHO_C"]=""

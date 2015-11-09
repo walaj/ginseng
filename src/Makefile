@@ -44,9 +44,14 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_swap_OBJECTS = swap.$(OBJEXT) Matrix.$(OBJEXT)
+am_swap_OBJECTS = swap-swap.$(OBJEXT) swap-Matrix.$(OBJEXT)
 swap_OBJECTS = $(am_swap_OBJECTS)
-swap_LDADD = $(LDADD)
+swap_DEPENDENCIES = $(top_builddir)/SnowTools/bwa/libbwa.a \
+	$(top_builddir)/SnowTools/src/libsnowtools.a \
+	$(top_builddir)/SnowTools/modular-boost/stage/lib/libboost_regex.a \
+	$(top_builddir)/SnowTools/htslib/libhts.a
+swap_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(swap_LDFLAGS) \
+	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -75,7 +80,7 @@ AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -Ofast
-CPPFLAGS =  -I/xchip/gistic/Jeremiah/GIT/isva/SnowTools/src
+CPPFLAGS = 
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
@@ -94,10 +99,11 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LDFLAGS = -L/xchip/gistic/Jeremiah/GIT/isva/SnowTools/src 
+LDFLAGS = 
 LIBOBJS = 
-LIBS = -lsnowtools -lpthread -lrt -lz 
+LIBS = -lpthread -lrt -lz 
 LTLIBOBJS = 
+MAINT = #
 MAKEINFO = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 OBJEXT = o
@@ -156,12 +162,25 @@ target_alias =
 top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
-swap_SOURCES = swap.cpp Matrix.cpp prng_engine.hpp ##Squares.cpp
+swap_CPPFLAGS = \
+	-I$(top_srcdir)/SnowTools/src \
+	-I$(top_srcdir)/SnowTools/htslib \
+	-I$(top_srcdir)/SnowTools/multifast-v1.4.2 \
+	-I$(top_srcdir)/SnowTools/modular-boost
+
+swap_LDADD = \
+	$(top_builddir)/SnowTools/bwa/libbwa.a \
+	$(top_builddir)/SnowTools/src/libsnowtools.a \
+	$(top_builddir)/SnowTools/modular-boost/stage/lib/libboost_regex.a \
+	$(top_builddir)/SnowTools/htslib/libhts.a
+
+swap_LDFLAGS = -pthread -std=c++11
+swap_SOURCES = swap.cpp Matrix.cpp prng_engine.hpp
 all: all-am
 
 .SUFFIXES:
 .SUFFIXES: .cpp .o .obj
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: # $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -186,9 +205,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure:  $(am__configure_deps)
+$(top_srcdir)/configure: # $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
+$(ACLOCAL_M4): # $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 install-binPROGRAMS: $(bin_PROGRAMS)
@@ -230,7 +249,7 @@ clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 swap$(EXEEXT): $(swap_OBJECTS) $(swap_DEPENDENCIES) 
 	@rm -f swap$(EXEEXT)
-	$(CXXLINK) $(swap_OBJECTS) $(swap_LDADD) $(LIBS)
+	$(swap_LINK) $(swap_OBJECTS) $(swap_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -238,8 +257,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-include ./$(DEPDIR)/Matrix.Po
-include ./$(DEPDIR)/swap.Po
+include ./$(DEPDIR)/swap-Matrix.Po
+include ./$(DEPDIR)/swap-swap.Po
 
 .cpp.o:
 	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -254,6 +273,34 @@ include ./$(DEPDIR)/swap.Po
 #	source='$<' object='$@' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+swap-swap.o: swap.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-swap.o -MD -MP -MF $(DEPDIR)/swap-swap.Tpo -c -o swap-swap.o `test -f 'swap.cpp' || echo '$(srcdir)/'`swap.cpp
+	$(am__mv) $(DEPDIR)/swap-swap.Tpo $(DEPDIR)/swap-swap.Po
+#	source='swap.cpp' object='swap-swap.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-swap.o `test -f 'swap.cpp' || echo '$(srcdir)/'`swap.cpp
+
+swap-swap.obj: swap.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-swap.obj -MD -MP -MF $(DEPDIR)/swap-swap.Tpo -c -o swap-swap.obj `if test -f 'swap.cpp'; then $(CYGPATH_W) 'swap.cpp'; else $(CYGPATH_W) '$(srcdir)/swap.cpp'; fi`
+	$(am__mv) $(DEPDIR)/swap-swap.Tpo $(DEPDIR)/swap-swap.Po
+#	source='swap.cpp' object='swap-swap.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-swap.obj `if test -f 'swap.cpp'; then $(CYGPATH_W) 'swap.cpp'; else $(CYGPATH_W) '$(srcdir)/swap.cpp'; fi`
+
+swap-Matrix.o: Matrix.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-Matrix.o -MD -MP -MF $(DEPDIR)/swap-Matrix.Tpo -c -o swap-Matrix.o `test -f 'Matrix.cpp' || echo '$(srcdir)/'`Matrix.cpp
+	$(am__mv) $(DEPDIR)/swap-Matrix.Tpo $(DEPDIR)/swap-Matrix.Po
+#	source='Matrix.cpp' object='swap-Matrix.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-Matrix.o `test -f 'Matrix.cpp' || echo '$(srcdir)/'`Matrix.cpp
+
+swap-Matrix.obj: Matrix.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-Matrix.obj -MD -MP -MF $(DEPDIR)/swap-Matrix.Tpo -c -o swap-Matrix.obj `if test -f 'Matrix.cpp'; then $(CYGPATH_W) 'Matrix.cpp'; else $(CYGPATH_W) '$(srcdir)/Matrix.cpp'; fi`
+	$(am__mv) $(DEPDIR)/swap-Matrix.Tpo $(DEPDIR)/swap-Matrix.Po
+#	source='Matrix.cpp' object='swap-Matrix.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-Matrix.obj `if test -f 'Matrix.cpp'; then $(CYGPATH_W) 'Matrix.cpp'; else $(CYGPATH_W) '$(srcdir)/Matrix.cpp'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
