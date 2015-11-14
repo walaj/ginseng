@@ -145,10 +145,10 @@ class MatrixValue {
 #else
       int dist = r.distance(c);
       if (dist < 0) {
-	assert(r.chr != c.chr);
+	//assert(r.chr != c.chr);
 	return INTERCHR;
       }
-      assert(r.chr == c.chr);
+      //assert(r.chr == c.chr);
       return dist;
 #endif
     }
@@ -180,6 +180,10 @@ class Matrix {
   friend class Squares;
 
  public:
+
+  MatrixValue ms1, ms2; // these are holders for when vals get swapped in. Try 
+  // declaring here to see if this is faster than re-declaring in every loop in 
+  // doSwap
 
   // histograms
   SnowTools::Histogram hist; // original histogram

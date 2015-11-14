@@ -72,7 +72,7 @@ CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run aclocal-1.11
 AMTAR = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run tar
-AM_CXXFLAGS = -Wall -Wextra  -Wno-unknown-pragmas -std=c++11
+AM_CXXFLAGS = -Wall -Wextra  -Wno-unknown-pragmas -std=c++11 -g
 AUTOCONF = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run autoconf
 AUTOHEADER = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run autoheader
 AUTOMAKE = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run automake-1.11
@@ -84,7 +84,7 @@ CPPFLAGS =
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
-CXXFLAGS = -Ofast
+CXXFLAGS = -O3
 CYGPATH_W = echo
 DEFS = -DPACKAGE_NAME=\"swap\" -DPACKAGE_TARNAME=\"swap\" -DPACKAGE_VERSION=\"0.0\" -DPACKAGE_STRING=\"swap\ 0.0\" -DPACKAGE_BUGREPORT=\"jwala@broadinstitute.org\" -DPACKAGE=\"swap\" -DVERSION=\"0.0\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_CLOCK_GETTIME=1 -DHAVE_PTHREAD=1
 DEPDIR = .deps

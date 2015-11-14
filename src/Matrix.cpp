@@ -287,8 +287,6 @@ void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm)
 
 void Matrix::doSwap() {
 
-  MatrixValue mo1, mo2;
-  
   // new and faster
   size_t chr = INTER; 
 
@@ -297,8 +295,8 @@ void Matrix::doSwap() {
   size_t i1 = rand_rows[m_mcmc.swap_tried] % m_vec[chr].size();
   size_t i2 = rand_cols[m_mcmc.swap_tried] % m_vec[chr].size();
  
-  mo1 = m_vec[chr][i1];
-  mo2 = m_vec[chr][i2];
+  MatrixValue mo1 = m_vec[chr][i1];
+  MatrixValue mo2 = m_vec[chr][i2];
 
   //std::cerr << "chr " << chr << std::endl;
   // make the swapped vals
