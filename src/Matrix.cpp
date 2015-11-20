@@ -18,7 +18,7 @@
 #define CHR1_MASK = 0xFF;
 #define CHR2_MASK = 0xFF00;
 
-#define MAX_RAR_SIZE 35e6
+#define MAX_RAR_SIZE 200e6
 
 // min distance to be valid. Gets rid of Sanger high FP rate at small events
 #define SANGER_DIST_LIM 8000
@@ -27,7 +27,7 @@
 
 #define SITMO_RNG 1
 
-#define MIN_BIN_WIDTH 10000
+#define MIN_BIN_WIDTH 1000
 
 #define ANIMATION 1
 
@@ -102,8 +102,8 @@ Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_in
 
   for (S i = 0; i < ne; ++i) {
 
-    if (i % 10000 == 0) 
-      std::cerr << "...generating event " << i << " of " << ne <<  std::endl;
+    //if (i % 10000 == 0) 
+    //  std::cerr << "...generating event " << i << " of " << ne <<  std::endl;
 
     std::string key;
     SnowTools::GenomicRegion gr1, gr2;
@@ -121,10 +121,11 @@ Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_in
       ++nFI;
       do {
 	gr2.chr = SnowTools::weightedRandom(SnowTools::CHR_CUMSUM_WEIGHT_X); 
-	gr2.pos1 = 1e6 + rand() % (int)(SnowTools::CHR_LEN_VEC[gr1.chr] - 2e6);
+	gr2.pos1 = 1e6 + rand() % (int)(SnowTools::CHR_LEN_VEC[gr2.chr] - 2e6);
 	gr2.pos2 = gr2.pos1;
       } while(gr1.chr == gr2.chr);
       assert(gr2.pos1 != 0 && gr2.pos2 != 0);
+      // intra chrom
     } else {
       ++nFC;
       do {
@@ -136,9 +137,12 @@ Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_in
 	}
 	gr2.pos2 = gr2.pos1;
 
-      } while (gr2.pos1 < 0 || gr2.pos1 > SnowTools::CHR_LEN_VEC[gr2.chr]);
+      } while (gr2.pos1 < 0 || gr2.pos1 > SnowTools::CHR_LEN_VEC[gr2.chr] || std::abs(gr2.pos1 - gr1.pos1) < SANGER_DIST_LIM);
       assert(gr2.pos1 != 0 && gr2.pos2 != 0);
     } 
+
+    assert(gr2.pos1 < SnowTools::CHR_LEN_VEC[gr2.chr]);
+    assert(gr1.pos1 < SnowTools::CHR_LEN_VEC[gr1.chr]);
 
     assert( gr1.pos1 != 0 && gr2.pos1 != 0 && gr1.pos2 != 0 && gr2.pos2 != 0);
     if (gr1 < gr2)
@@ -155,12 +159,13 @@ Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_in
   if (m_verbose)
     std::cerr << "Matrix created with " <<  m_intra << " intra- and " << m_inter << " inter- events (ratio " << intraRatio() << ")" << std::endl;
 
-  // fill event histograms
-  //if (m_verbose) 
-  //  std::cerr << "filling histogram, m_num_bins=" << m_num_bins << std::endl;
+  // scramble to make even around the diagonal
+  for (auto& i : m_vec) 
+    for (auto& j : i) 
+      if (rand() % 2)
+	j = MatrixValue(j.c, j.r);
 
   fillQuantileHistograms(m_num_bins);
-  //std::cerr << "Histogram created " << std::endl;
 
   m_orig = this;
 }
@@ -576,7 +581,7 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	      addMatrixValue(mv);
 	      
 	      // increment the event counter
-	      new_events++;
+	      ++new_events;
 	    }
 
 	  } catch(...) {
@@ -883,3 +888,4 @@ void Matrix::__initialize_mvec() {
     m_vec.push_back({});
 
 }
+

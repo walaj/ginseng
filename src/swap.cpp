@@ -122,15 +122,15 @@ int main(int argc, char** argv) {
     else if (opt::stored_matrices.length()) {
       cerr << "Stored matrix file " << opt::stored_matrices << endl;
     } 
-    cerr << "Matrices: " << opt::num_matrices << "\tSteps: " << opt::num_steps << "\tHistBins: " << opt::num_bins << endl;
-    cerr << "Temp 1/2 life: " << opt::half_life << endl;
-    cerr << "Animation:     " << (opt::anim_step > 0 ? to_string(opt::anim_step) : "OFF")  << endl;
+    cerr << "Matrices: " << SnowTools::AddCommas(opt::num_matrices) << "\tSteps: " << SnowTools::AddCommas(opt::num_steps) << "\tHistBins: " << opt::num_bins << endl;
+    cerr << "Temp 1/2 life: " << SnowTools::AddCommas(opt::half_life) << endl;
+    cerr << "Animation:     " << (opt::anim_step > 0 ? SnowTools::AddCommas(opt::anim_step) : "OFF")  << endl;
     cerr << "BED list:      " << (opt::bed_list) << endl;
     //cerr << "BED file mask: " << (opt::mask.length() ? opt::mask : "NONE") << endl;
 
     if (opt::mode == OPT_SIMULATE) {
       cerr << "--------------- Simulating events ----------------" << std::endl;
-      cerr << "Num events: " << (opt::num_events) << "\tPowerLaw: " << opt::power_law << " FracInter: " << opt::frac_inter << std::endl;
+      cerr << "Num events: " << SnowTools::AddCommas((opt::num_events)) << "\tPowerLaw: " << opt::power_law << " FracInter: " << opt::frac_inter << std::endl;
       cerr << "--------------------------------------------------" << std::endl;
     }
     if (opt::half_life == 0) 
@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
 	      all_bed[bedid] = SnowTools::GRC();
 	      all_bed[bedid].regionFileToGRV(val);
 	      all_bed[bedid].createTreeMap();
-	      std::cerr << "...read in " << bedid << " with " << all_bed[bedid].size() << " regions " << std::endl;
+	      std::cerr << "...read in " << bedid << " with " << SnowTools::AddCommas(all_bed[bedid].size()) << " regions " << std::endl;
 	    }
 	  }
 	}
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
     readStoredMatrices(opt::stored_matrices);
   }
 
-  double frac_inter = m->m_inter / (m->m_inter+m->m_intra);
+  double frac_inter = (double)m->m_inter / (double)(m->m_inter+m->m_intra);
   //if (all_mats.size() == 0)
   //  opt::num_steps = 1;
 
@@ -218,9 +218,7 @@ int main(int argc, char** argv) {
 
     // pre-compute the temps
     //double * temps = (double*) calloc(opt::num_steps, sizeof(double));
-    if (opt::half_life && (double)opt::half_life/double(opt::num_steps) < 1) { // if half_life is zero, no temperature decay
-
-      std::cerr << "...computing probabilities" << std::endl;
+    if (frac_inter < 1 && opt::half_life && (double)opt::half_life/double(opt::num_steps) < 1) { // if half_life is zero, no temperature decay
 
       for (size_t i = 0; i < opt::num_steps; ++i) {
 	double frac = (double)i/(double)opt::half_life;
@@ -230,7 +228,7 @@ int main(int argc, char** argv) {
 	probs[1][i] = (uint16_t)std::min(std::floor(exp(-2/tempr)*TRAND), (double)TRAND);
 	probs[2][i] = (uint16_t)std::min(std::floor(exp(-3/tempr)*TRAND), (double)TRAND);
 	probs[3][i] = (uint16_t)std::min(std::floor(exp(-4/tempr)*TRAND), (double)TRAND);
-	if (i % 2000000 == 0)
+	if (i % 5000000 == 0)
 	  std::cerr << "P(least-non-optimal) " << probs[0][i] << " P(most-non-optimal) " << probs[3][i] << " Temp " << tempr << " Step " << SnowTools::AddCommas<size_t>(i) << std::endl;
       }
       // half life is huge, so we don't want to decay at all (permanently hot)
@@ -246,7 +244,7 @@ int main(int argc, char** argv) {
     m->probs = probs;
     
     // precompute the histogram bins
-    if (!opt::inter_only) {
+    if (!opt::inter_only && frac_inter < 1) {
       std::cerr << "...precomputing bin indicies" << std::endl;
       uint32_t max_dist = 250000000;
       uint8_t * bin_table = (uint8_t*) calloc(max_dist, sizeof(uint8_t));
@@ -265,9 +263,9 @@ int main(int argc, char** argv) {
       sitmo::prng_engine eng1;
       eng1.seed(1337);
 
-      size_t num_intra = frac_inter < 1 ? std::floor((double)opt::num_steps * (1 - 0.8 * frac_inter)) : opt::num_steps;
+      size_t num_intra = frac_inter < 1 ? std::floor((double)opt::num_steps * ((double)1 - 0.8 * frac_inter)) : opt::num_steps;
       uint8_t * rand_chr = (uint8_t*) calloc(opt::num_steps, sizeof(uint8_t));
-      std::cerr << "...number of swaps to make intra-chromosomal: " << SnowTools::AddCommas(num_intra) << std::endl;
+      std::cerr << "...fraction inter " << frac_inter << " -- number of swaps to make intra-chromosomal: " << SnowTools::AddCommas(num_intra) << std::endl;
 
       for (size_t i = 0; i < opt::num_steps; ++i) {
 	size_t rv = eng1() % m->m_intra;    
