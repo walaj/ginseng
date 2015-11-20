@@ -10,7 +10,7 @@ option_list = list(
     make_option(c("-i", "--input"),        type = "character", default = "animation.csv",  help = "Animation data file from swap (default: animation.csv"),
   make_option(c("-r", "--results"),        type = "character", default = "results.csv",  help = "Animation data file from swap (default: animation.csv"),
     make_option(c("-o", "--output"),       type = "character", default = "swap.gif",  help = "Output GIF to generate"),
-    make_option(c("-t", "--interval"),     type = "numeric", default = 0.2,  help = "GIF interval (in seconds)"),
+  make_option(c("-t", "--interval"),     type = "numeric", default = 0.2,  help = "GIF interval (in seconds)"),
     make_option(c("-w", "--width"),        type = "numeric", default = 2000,  help = "Animation width (default 2000)"),
     make_option(c("-d", "--downsample"),   type = "numeric", default = 1.0,  help = "Downsample events by to this fraction of original. Default 1"),
     make_option(c("-f", "--firstandlast"), type="logical", default=FALSE, help="GIF data and final swap only"),
@@ -95,14 +95,14 @@ fancy_scientific <- function(l) {
 
 ## set the non-scrambled
 print("...reading CSV file")
-bt <- read.delim(opt$input, sep=",", header=FALSE)
-colnames(bt) <- c("chr1","pos1","chr2", "pos2", "count", "step") ##, "T", "accepted","shared")
-bt$type = "Swap"
-bt$type[bt$step==1] = "Data"
-data.ix = bt$type == "Data"
-bt <- data.table(bt)
+#bt <- read.delim(opt$input, sep=",", header=FALSE)
+bt <- fread(opt$input)
+setnames(bt, c("V1","V2","V3","V4","V5","V6"), c("chr1","pos1","chr2", "pos2", "count", "step")) ##, "T", "accepted","shared")
+bt[, type := ifelse(step==1, "Data", "Swap")]
 bt[, d := ifelse(chr1==chr2, abs(pos1-pos2),-1)]
-becdf <- ecdf(bt$d[data.ix & bt$d > 0])
+data.ix = bt$type == "Data"
+#if (any(bt$d > 0))
+#  becdf <- ecdf(bt$d[data.ix & bt$d > 0])
 
 mx = max(bt$step)
 
@@ -119,22 +119,22 @@ ht_s$step = rep(unique(bt$step), each=abs(diff(which(ht_s$V1==0)[1:2]))) ## add 
 ht_s <- ht_s[ht_s$V1 != 250e6, ] # don't plot inter-chrom events
 
 ## read in the BED files
-print('...reading BEDs')
-tt <- data.frame(xmin=0,xmax=0,ymin=0,ymax=0)
-if (!is.null(opt$bedA) && !is.null(opt$bedB)) {
-  print('...reading bed file A')
-  tt_a <- read.delim(opt$bedA, sep='\t', header=FALSE, comment.char='#')
-  tt_b <- read.delim(opt$bedB, sep='\t', header=FALSE, comment.char='#')
-  tt_a$V1 <- gsub("chr", "", tt_a$V1)
-  tt_b$V1 <- gsub("chr", "", tt_b$V1)
-  tt_a <- tt_a[tt_a$V1 %in% names(hg19_clen), ]
-  tt_b <- tt_b[tt_a$V1 %in% names(hg19_clen), ]
-  print(paste("Read in", nrow(tt_a), "regions from BED A and", nrow(tt_b), "regions from BED B"))
-  tt <- data.frame(xmin=round((hg19_clen[tt_a$V1] + tt_a$V2)/SCALE),
-                   xmax=round((hg19_clen[tt_a$V1] + tt_a$V3)/SCALE),
-                   ymin=round((hg19_clen[tt_b$V1] + tt_b$V2)/SCALE),
-                   ymax=round((hg19_clen[tt_b$V1] + tt_b$V3)/SCALE))
-}
+#print('...reading BEDs')
+#tt <- data.frame(xmin=0,xmax=0,ymin=0,ymax=0)
+#if (!is.null(opt$bedA) && !is.null(opt$bedB)) {
+#  print('...reading bed file A')
+#  tt_a <- read.delim(opt$bedA, sep='\t', header=FALSE, comment.char='#')
+#  tt_b <- read.delim(opt$bedB, sep='\t', header=FALSE, comment.char='#')
+#  tt_a$V1 <- gsub("chr", "", tt_a$V1)
+#  tt_b$V1 <- gsub("chr", "", tt_b$V1)
+#  tt_a <- tt_a[tt_a$V1 %in% names(hg19_clen), ]
+#  tt_b <- tt_b[tt_a$V1 %in% names(hg19_clen), ]
+#  print(paste("Read in", nrow(tt_a), "regions from BED A and", nrow(tt_b), "regions from BED B"))
+#  tt <- data.frame(xmin=round((hg19_clen[tt_a$V1] + tt_a$V2)/SCALE),
+#                   xmax=round((hg19_clen[tt_a$V1] + tt_a$V3)/SCALE),
+#                   ymin=round((hg19_clen[tt_b$V1] + tt_b$V2)/SCALE),
+#                   ymax=round((hg19_clen[tt_b$V1] + tt_b$V3)/SCALE))
+#}
 
 ## convert to absolute dist
 bt[, full_pos1 := hg19_clen[chr1+1] + pos1] ## +1 for 1 indexed vecs in R
@@ -185,25 +185,24 @@ if (file.info(opt$results)$size > 0) {
   print(max(rt$ID))
 
   size = 1
-  id.to.keep <- c("FRAG--FRAG","GENE--GENE","FRAG--GENE","GENE_SHUF--GENE_SHUF","FRAG--GENE_SHUF") #, "GENE--PROM_SHUF","GENE_SHUF--PROM_SHUF")
+  #id.to.keep <- c("FRAG--FRAG") #,"GENE--GENE","FRAG--GENE","GENE_SHUF--GENE_SHUF","FRAG--GENE_SHUF") #, "GENE--PROM_SHUF","GENE_SHUF--PROM_SHUF")
+  id.to.keep <- unique(rt$EXP)
   rt <- rt[rt$EXP %in% id.to.keep,]
   dt.rt <- data.table(rt)
   zscore = (rt$Overlap[1] - mean(rt$Overlap[-1]))/sd(rt$Overlap)
   pvalue = max(sum(rt$Overlap[-1] > rt$Overlap[1]) / (nrow(rt)-1), 1/(nrow(rt)-1))
 
-  levels(rt$EXP <- factor(rt$EXP))
-  levels(rt$EXP) <- c("Fragile-Fragile", "Fragile-Gene", "Fragile-Gene Shuffle", "Gene-Gene", "Gene Shuffle-Gene Shuffle")
+  #levels(rt$EXP <- factor(rt$EXP))
+  #levels(rt$EXP) <- c("Fragile-Fragile", "Fragile-Gene", "Fragile-Gene Shuffle", "Gene-Gene", "Gene Shuffle-Gene Shuffle")
   dum0 <- data.frame(EXP=rep(rt$EXP[rt$ID==-1], each=2), x=rep(rt$Overlap[rt$ID==-1], each=2),y=rep(c(0,300), sum(rt$ID==-1)))
   g.res <- ggplot() + geom_histogram(data=rt[rt$ID >= 0,c(3,4,5,6)], aes(x=Overlap)) +
     ##ggtitle(paste("Data Overlap:", rt$Overlap[1], "Z-score:", zscore, "Matrices:", nrow(rt)-1, "P-val:", pvalue)) +
-      theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=1) +
-    geom_line(data=dum0, aes(x=x, y=y), color="blue")
-  #+
-  #    theme(text=element_text(size+10))
-  pdf("~/public_html/result.pdf", height=3, width=20)
+      theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0, aes(x=x, y=y), color="blue")
+      #theme(text=element_text(size+10))
+  pdf("result.pdf", height=20, width=20)
   print(g.res)
   dev.off()
-  pdf("~/public_html/Swap_result.pdf", height=3, width=9)
+  pdf("Swap_result.pdf", height=3, width=9)
   print(g.res)
   dev.off()
 
@@ -215,52 +214,52 @@ SIZE = 1
 TEXT_SIZE = 12
 
 afunc <- function(bt, steps, data.ix) {
-  sapply(seq_along(steps), function(x) {
+  #sapply(seq_along(steps), function(x) {
     
     mx.u <-max(unique(steps))
-    if (steps[x] == 1 && x==1) {
+    if (steps) { #[x] == 1 && x==1) {
       print(paste("Working on DATA"))
-    } else if (steps[x] == mx.u && x==which(steps==mx.u)[1]) {
+    } else if (steps == mx.u) { ## && x==which(steps==mx.u)[1]) {
       print(paste("Working on FINAL"))
-    } else if (steps[x] > 1 && steps[x] < mx.u) {
-      print(paste("Working on step:", steps[x], "of", mx))
+    } else if (steps > 1 && steps < mx.u) {
+      print(paste("Working on step:", steps, "of", mx))
     }
 
-    tix <- bt$step == steps[x]
+    tix <- bt$step == steps
 #    tix <- bt$step == steps
     ix = tix | data.ix
     temp <- paste("Temperature:", bt[ix]$T[sum(ix)])
 
     ## do the histogram plot
-    g.dhist <- ggplot() + geom_rect(data=ht[ht$step==steps[x], ], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill=NA, color='darkred') +
+    g.dhist <- ggplot() + geom_rect(data=ht[ht$step==steps, ], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill=NA, color='darkred') +
       geom_rect(data=ht[ht$step==1,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill=NA, color='darkgreen') +
-      geom_rect(data=ht_s[ht_s$step==steps[x],], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill="red", color="red", alpha=0.2) + 
+      geom_rect(data=ht_s[ht_s$step==steps,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill="red", color="red", alpha=0.2) + 
       geom_rect(data=ht_s[ht_s$step==1,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill="green", color="green", alpha=0.2) +
-        theme_bw() + xlab("Span") + ylab("Count") + coord_cartesian(xlim=c(2,8.5), ylim=c(0, max(ht$V3[ht$step==1])*2)) + scale_x_continuous(labels=fancy_scientific, breaks=1:8)
+        theme_bw() + xlab("Span") + ylab("Count") + coord_cartesian(xlim=c(2,8.5), ylim=c(0, max(ht$V3[ht$step==1])*1.1)) + scale_x_continuous(labels=fancy_scientific, breaks=1:8)
     
     ## set the orig plot
     g.orig <- ggplot() + geom_point(data=bt[data.ix,], aes(x=dsam1, y=dsam2), size=SIZE) + theme_bw() + ggtitle(paste("Original data:", sum(data.ix), "events")) +
-      xlab("") + ylab("") + geom_rect(data=chrdf, aes(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax), fill='green', alpha=0.10, color='black') +
-        geom_rect(data=tt, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="purple", alpha=0.35, color='purple') + ## plot the bed regions
-        theme(legend.position="none") + coord_cartesian(xlim=c(MIN,MAX), ylim=c(MIN,MAX)) 
+      xlab("") + ylab("") + geom_rect(data=chrdf, aes(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax), fill='green', alpha=0.10, color='black') 
+        #geom_rect(data=tt, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="purple", alpha=0.35, color='purple') + ## plot the bed regions
+        #theme(legend.position="none") + coord_cartesian(xlim=c(MIN,MAX), ylim=c(MIN,MAX)) 
     
     ## set the swap plot
-    g.swap <- ggplot() + geom_point(data=bt[tix,], aes(x=dsam1, y=dsam2), size=SIZE) + theme_bw() + ggtitle(paste("Swapped, at Temp:", temp, "Step:", steps[x])) +
-      xlab("") + ylab("") + geom_rect(data=chrdf, aes(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax), fill='green', alpha=0.15, color='black') +
-        geom_rect(data=tt, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="purple", alpha=0.35, color='purple') + ## plot the bed regions
-        geom_rect(data=tt, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="yellow", alpha=0.3, color='black') + 
-        theme(legend.position="none") + coord_cartesian(xlim=c(MIN,MAX), ylim=c(MIN,MAX)) 
+    g.swap <- ggplot() + geom_point(data=bt[tix,], aes(x=dsam1, y=dsam2), size=SIZE) + theme_bw() + ggtitle(paste("Swapped, at Temp:", temp, "Step:", steps)) +
+      xlab("") + ylab("") + geom_rect(data=chrdf, aes(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax), fill='green', alpha=0.15, color='black') 
+        #geom_rect(data=tt, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="purple", alpha=0.35, color='purple') + ## plot the bed regions
+        #geom_rect(data=tt, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="yellow", alpha=0.3, color='black') + 
+        #theme(legend.position="none") + coord_cartesian(xlim=c(MIN,MAX), ylim=c(MIN,MAX)) 
 
     ## set the accepted plot
     #df.a$type = "other";
-    #df.a$type[df.a$step == steps[x]] = "this"
+    #df.a$type[df.a$step == steps] = "this"
     #g.accept <- ggplot() + geom_point(data=df.a, aes(x=step, y=accepted, color=type), size=3) + theme_bw() + 
     #  xlab("Steps") + ylab("Step Acceptance %") + theme(legend.position="none") + scale_colour_manual(values=c("black", "green")) + ylim(c(0,max(df.a$accepted)*1.1)) +
     #    theme(text = element_text(size=TEXT_SIZE))
 
     ## set the shared plot
     #df.s$type = "other";
-    #df.s$type[df.s$step == steps[x]] = "this"
+    #df.s$type[df.s$step == steps] = "this"
     #g.shared <- ggplot() + geom_point(data=df.s, aes(x=step, y=shared, color=type), size=3) + theme_bw() + 
     #  xlab("Steps") + ylab("Shared %") + theme(legend.position="none") + scale_colour_manual(values=c("black", "green")) + ylim(c(0,max(df.s$shared)*1.1)) +
     #    theme(text = element_text(size=TEXT_SIZE)) + coord_cartesian(ylim=c(0,0.3))
@@ -269,42 +268,50 @@ afunc <- function(bt, steps, data.ix) {
     inter = sum(bt$d[tix]<0)
     intra = sum(bt$d[tix]>=0)
     ratio = inter / (intra+0.0001)
-    
-    secdf <- ecdf(bt$d[tix & bt$d >= 0])
-    sq <- c(0,1,10,100,200,500,1000,2000,5000,10000,20000,seq(from=30000, to=max.d, by=1e5))
-    oecdf <- ecdf(bt$d[bt$type=="Data" & bt$d >= 0])
+
+    ## plot the non-binned size histogram
+    if (any(bt$d > 0)) {
+      g.ohist <- ggplot(bt[tix & d > 0]) + geom_histogram(aes(x=log10(d)), fill='gray80', color='black') +
+        scale_x_continuous(name="Size (bp)", breaks=0:8, label=parse(text=paste("10", 0:8, sep="^"))) + theme_bw() +
+          ylab("Event count") + ggtitle("Original Histogram")
+      
+      g.thist <- ggplot(bt[data.ix & d > 0]) + geom_histogram(aes(x=log10(d)), fill='gray80', color='black') +
+        scale_x_continuous(name="Size (bp)", breaks=0:8, label=parse(text=paste("10", 0:8, sep="^"))) + theme_bw() +
+          ylab("Event count") + ggtitle("Swapped Histogram")
+    }
+      
+    #secdf <- ecdf(bt$d[tix & bt$d >= 0])
+    #sq <- c(0,1,10,100,200,500,1000,2000,5000,10000,20000,seq(from=30000, to=max.d, by=1e5))
+    #oecdf <- ecdf(bt$d[bt$type=="Data" & bt$d >= 0])
     ##iiix <- c(1,sort(sample(length(sq)*2, 10000)))
-    df <- data.frame(x=c(sq,sq), y=c(secdf(sq),oecdf(sq)),type=c(rep("Swap 1M", length(sq)), rep("Swap 5M", length(sq)),rep("Data", length(sq))))
-    gs <- ggplot() + geom_line(data=df, aes(x=x, y=y, color=type), size=2) + theme_bw() + xlab("Distance") + ylab("CDF")  +
+    #df <- data.frame(x=c(sq,sq), y=c(secdf(sq),oecdf(sq)),type=c(rep("Swap 1M", length(sq)), rep("Swap 5M", length(sq)),rep("Data", length(sq))))
+    #gs <- ggplot() + geom_line(data=df, aes(x=x, y=y, color=type), size=2) + theme_bw() + xlab("Distance") + ylab("CDF")  +
       #ggtitle(paste("Intra-", intra, "Inter-", inter, "Ratio: ", ratio)) + theme(legend.title=element_blank()) + ylim(c(0,1)) + xlim(c(0,175e6)) +
-              theme(text = element_text(size=TEXT_SIZE)) + scale_colour_manual(values=c("darkgreen", "darkred"), name='') 
+    #          theme(text = element_text(size=TEXT_SIZE)) + scale_colour_manual(values=c("darkgreen", "darkred"), name='') 
 
-    if (file.info(opt$results)$size > 0)
-      suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), arrangeGrob(gs, g.res, ncol=4), g.dhist, nrow=3, ncol=1, heights=c(1/2,1/4,1/4))) #, widths=c(1/3,1/3,1/3)))
+    if (any(bt$d > 0))
+      suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), arrangeGrob(g.ohist, g.thist, ncol=2), g.dhist, nrow=3, ncol=1, heights=c(1/2,1/4,1/4)))
     else
-      suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), arrangeGrob(gs, g.accept, g.shared, ncol=3), g.dhist, nrow=3, ncol=1, heights=c(1/2,1/4,1/4))) #, widths=c(1/3,1/3,1/3)))
-  })
-}
+      suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), g.dhist, nrow=2, ncol=1, heights=c(1/2,1/2)))
+  }
 
-## make the animcation
+## make the animation
 r <- floor(1/opt$interval)
 steps <- c(rep(1,r),unique(bt$step), rep(unique(bt$step)[length(unique(bt$step))], r))
 if (opt$firstandlast)
     steps = c(steps[1], steps[(length(steps))])
-saveGIF(afunc(bt, steps, data.ix), movie.name=opt$output, interval=opt$interval, ani.width=opt$width, ani.height=opt$height)
+#ppdf(print(afunc(bt, steps[1], data.ix)))
+pdf("swap.pdf")
+print(afunc(bt, steps[length(steps)], data.ix))
+dev.off()
+#saveGIF(afunc(bt, steps, data.ix), movie.name=opt$output, interval=opt$interval, ani.width=opt$width, ani.height=opt$height, ani.dev='pdf')
 
 #####
 if (FALSE)
   {
-    
     system.time(bt <- read.delim(gzfile("/xchip/gistic/Jeremiah/Projects/Significance/Sanger2500/Runs/150427/all.matrices.csv.gz"), sep="\t", header=FALSE)    )
     dt <- data.table(bt)
     setnames(dt, c("V1","V2","V3","V4","V5"), c("r_chr","r_pos","c_chr","c_pos","id"))
     setkey(dt, id, r_chr, r_pos)
-   
-
-
-
-
   }
 

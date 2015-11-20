@@ -1,53 +1,3 @@
-/*
- * By downloading the PROGRAM you agree to the following terms of use:
- *
- * BROAD INSTITUTE SOFTWARE LICENSE AGREEMENT
- * FOR ACADEMIC NON-COMMERCIAL RESEARCH PURPOSES ONLY
- *
- * This Agreement is made between the Broad Institute, Inc. with a principal address at 7 Cambridge Center, Cambridge, MA 02142 ("BROAD") and the LICENSEE and is effective at the date the downloading is completed ("EFFECTIVE DATE").
- * WHEREAS, LICENSEE desires to license the PROGRAM, as defined hereinafter, and BROAD wishes to have this PROGRAM utilized in the public interest, subject only to the royalty-free, nonexclusive, nontransferable license rights of the United States Government pursuant to 48 CFR 52.227-14; and
- * WHEREAS, LICENSEE desires to license the PROGRAM and BROAD desires to grant a license on the following terms and conditions.
- * NOW, THEREFORE, in consideration of the promises and covenants made herein, the parties hereto agree as follows:
- *
- * 1. DEFINITIONS
- * 1.1"PROGRAM" shall mean copyright in the object code and source code known as MuTect and related documentation, if any, as they exist on the EFFECTIVE DATE and can be downloaded from http://www.broadinstitute.or/cancer/cga/mutect on the EFFECTIVE DATE.
- *
- * 2. LICENSE
- * 2.1   Grant. Subject to the terms of this Agreement, BROAD hereby grants to LICENSEE, solely for academic non-commercial research purposes, a non-exclusive, non-transferable license to: (a) download, execute and display the PROGRAM and (b) create bug fixes and modify the PROGRAM.
- * LICENSEE hereby automatically grants to BROAD a non-exclusive, royalty-free, irrevocable license to any LICENSEE bug fixes or modifications to the PROGRAM with unlimited rights to sublicense and/or distribute.  LICENSEE agrees to provide any such modifications and bug fixes to BROAD promptly upon their creation.
- * The LICENSEE may apply the PROGRAM in a pipeline to data owned by users other than the LICENSEE and provide these users the results of the PROGRAM provided LICENSEE does so for academic non-commercial purposes only.  For clarification purposes, academic sponsored research is not a commercial use under the terms of this Agreement.
- * 2.2  No Sublicensing or Additional Rights. LICENSEE shall not sublicense or distribute the PROGRAM, in whole or in part, without prior written permission from BROAD.  LICENSEE shall ensure that all of its users agree to the terms of this Agreement.  LICENSEE further agrees that it shall not put the PROGRAM on a network, server, or other similar technology that may be accessed by anyone other than the LICENSEE and its employees and users who have agreed to the terms of this agreement.
- * 2.3  License Limitations. Nothing in this Agreement shall be construed to confer any rights upon LICENSEE by implication, estoppel, or otherwise to any computer software, trademark, intellectual property, or patent rights of BROAD, or of any other entity, except as expressly granted herein. LICENSEE agrees that the PROGRAM, in whole or part, shall not be used for any commercial purpose, including without limitation, as the basis of a commercial software or hardware product or to provide services. LICENSEE further agrees that the PROGRAM shall not be copied or otherwise adapted in order to circumvent the need for obtaining a license for use of the PROGRAM.
- *
- * 3. OWNERSHIP OF INTELLECTUAL PROPERTY
- * LICENSEE acknowledges that title to the PROGRAM shall remain with BROAD. The PROGRAM is marked with the following BROAD copyright notice and notice of attribution to contributors. LICENSEE shall retain such notice on all copies.  LICENSEE agrees to include appropriate attribution if any results obtained from use of the PROGRAM are included in any publication.
- *
- * Copyright 2012 Broad Institute, Inc.
- * Notice of attribution:  The MuTect program was made available through the generosity of the Cancer Genome Analysis group at the Broad Institute, Inc. and is published at doi: 10.1038/nbt.2514.
- *
- * LICENSEE shall not use any trademark or trade name of BROAD, or any variation, adaptation, or abbreviation, of such marks or trade names, or any names of officers, faculty, students, employees, or agents of BROAD except as states above for attribution purposes.
- *
- * 4. INDEMNIFICATION
- * LICENSEE shall indemnify, defend, and hold harmless BROAD, and their respective officers, faculty, students, employees, associated investigators and agents, and their respective successors, heirs and assigns, ("Indemnitees"), against any liability, damage, loss, or expense (including reasonable attorneys fees and expenses) incurred by or imposed upon any of the Indemnitees in connection with any claims, suits, actions, demands or judgments arising out of any theory of liability (including, without limitation, actions in the form of tort, warranty, or strict liability and regardless of whether such action has any factual basis) pursuant to any right or license granted under this Agreement.
- *
- * 5. NO REPRESENTATIONS OR WARRANTIES
- * THE PROGRAM IS DELIVERED "AS IS."  BROAD MAKES NO REPRESENTATIONS OR WARRANTIES OF ANY KIND CONCERNING THE PROGRAM OR THE COPYRIGHT, EXPRESS OR IMPLIED, INCLUDING, WITHOUT LIMITATION, WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NONINFRINGEMENT, OR THE ABSENCE OF LATENT OR OTHER DEFECTS, WHETHER OR NOT DISCOVERABLE. BROAD EXTENDS NO WARRANTIES OF ANY KIND AS TO PROGRAM CONFORMITY WITH WHATEVER USER MANUALS OR OTHER LITERATURE MAY BE ISSUED FROM TIME TO TIME.
- * IN NO EVENT SHALL BROAD OR ITS RESPECTIVE DIRECTORS, OFFICERS, EMPLOYEES, AFFILIATED INVESTIGATORS AND AFFILIATES BE LIABLE FOR INCIDENTAL OR CONSEQUENTIAL DAMAGES OF ANY KIND, INCLUDING, WITHOUT LIMITATION, ECONOMIC DAMAGES OR INJURY TO PROPERTY AND LOST PROFITS, REGARDLESS OF WHETHER BROAD SHALL BE ADVISED, SHALL HAVE OTHER REASON TO KNOW, OR IN FACT SHALL KNOW OF THE POSSIBILITY OF THE FOREGOING.
- *
- * 6. ASSIGNMENT
- * This Agreement is personal to LICENSEE and any rights or obligations assigned by LICENSEE without the prior written consent of BROAD shall be null and void.
- *
- * 7. MISCELLANEOUS
- * 7.1 Export Control. LICENSEE gives assurance that it will comply with all United States export control laws and regulations controlling the export of the PROGRAM, including, without limitation, all Export Administration Regulations of the United States Department of Commerce. Among other things, these laws and regulations prohibit, or require a license for, the export of certain types of software to specified countries.
- * 7.2 Termination. LICENSEE shall have the right to terminate this Agreement for any reason upon prior written notice to BROAD. If LICENSEE breaches any provision hereunder, and fails to cure such breach within thirty (30) days, BROAD may terminate this Agreement immediately. Upon termination, LICENSEE shall provide BROAD with written assurance that the original and all copies of the PROGRAM have been destroyed, except that, upon prior written authorization from BROAD, LICENSEE may retain a copy for archive purposes.
- * 7.3 Survival. The following provisions shall survive the expiration or termination of this Agreement: Articles 1, 3, 4, 5 and Sections 2.2, 2.3, 7.3, and 7.4.
- * 7.4 Notice. Any notices under this Agreement shall be in writing, shall specifically refer to this Agreement, and shall be sent by hand, recognized national overnight courier, confirmed facsimile transmission, confirmed electronic mail, or registered or certified mail, postage prepaid, return receipt requested.  All notices under this Agreement shall be deemed effective upon receipt.
- * 7.5 Amendment and Waiver; Entire Agreement. This Agreement may be amended, supplemented, or otherwise modified only by means of a written instrument signed by all parties. Any waiver of any rights or failure to act in a specific instance shall relate only to such instance and shall not be construed as an agreement to waive any rights or fail to act in any other instance, whether or not similar. This Agreement constitutes the entire agreement among the parties with respect to its subject matter and supersedes prior agreements or understandings between the parties relating to its subject matter.
- * 7.6 Binding Effect; Headings. This Agreement shall be binding upon and inure to the benefit of the parties and their respective permitted successors and assigns. All headings are for convenience only and shall not affect the meaning of any provision of this Agreement.
- * 7.7 Governing Law. This Agreement shall be construed, governed, interpreted and applied in accordance with the internal laws of the Commonwealth of Massachusetts, U.S.A., without regard to conflict of laws principles.
- */
-
-
 #include "Matrix.h"
 #include "swap.h"
 
@@ -56,6 +6,7 @@
 #include <random>
 #include <cassert>
 #include <fstream>
+#include <algorithm>
 
 #include "SnowTools/gzstream.h"
 #include "SnowTools/SnowUtils.h"
@@ -66,6 +17,8 @@
 // define a mask so we can store two chr in one uint16_t
 #define CHR1_MASK = 0xFF;
 #define CHR2_MASK = 0xFF00;
+
+#define MAX_RAR_SIZE 35e6
 
 // min distance to be valid. Gets rid of Sanger high FP rate at small events
 #define SANGER_DIST_LIM 8000
@@ -78,64 +31,116 @@
 
 #define ANIMATION 1
 
+#define MIN_RAR_SIZE 5000
+
 static const size_t INTER = 25;
 
-/*Matrix::Matrix(S nr, S nc, S ne, size_t nb, size_t ns) : m_num_bins(nb), m_num_steps(ns) { 
+int drawFromPower(double x0, double x1, double power) {
+
+  assert(power != -1);
+
+  const int PRECISION = 1e6;
+
+  double r = (double)(rand() % PRECISION)/(double)PRECISION;
+  double t1 = std::pow(x1, power+1);
+  double t2 = std::pow(x0, power+1);
+  double tsum = (t1-t2) * r + t2;
+
+  return std::floor(std::pow(tsum, 1 / (power + 1)));
+}
+
+
+std::vector<int> drawFromPower(double x0, double x1, double power, int n_draws) {
+
+  assert(power != -1);
+
+  const int PRECISION = 1e6;
+
+  std::vector<int> rpower(n_draws, 0);
   
-  std::cout << "Creating random sparse matrix of dims " << nr << "x" << nc << " with " << ne << " events (1's)" <<  std::endl;
+  for (int i = 0; i < n_draws; ++i) {
+    double r = (double)(rand() % PRECISION)/(double)PRECISION;
+    double t1 = std::pow(x1, power+1);
+    double t2 = std::pow(x0, power+1);
+    double tsum = (t1-t2) * r + t2;
+    rpower[i] = std::floor(std::pow(tsum, 1 / (power + 1)));
+  }
 
-  // initialize the m_vec
-  assert(m_vec.size() == 0);
-  for (size_t i = 0; i < 26; i++)
-    m_vec.push_back({});
+  return rpower;
+}
 
-  // fill with random values
-  for (S i = 0; i < ne; i++) {
-    if (i % 10000 == 0 && i > 0) 
-      std::cout << "...generating event " << i << " of " << ne <<  std::endl;
+void genRandomSequence(std::string& s, SnowTools::GenomicRegion& gr, int width, faidx_t * findex, SnowTools::GRC& grc) {
+
+  gr.chr = SnowTools::weightedRandom(SnowTools::CHR_CUMSUM_WEIGHT_X);
+  std::string chrstring = SnowTools::CHR_NAME[gr.chr];
+  char * seq = nullptr;
+  int len;
+  // get the first sequence
+  do {
+    if (seq)
+      free(seq);
+    seq = nullptr;
+    s = std::string();
+    gr.pos1 = 1e6 + rand() % (int)(SnowTools::CHR_LEN_VEC[gr.chr] - 2e6);
+    gr.pos2 = gr.pos1 + width;
+    seq = faidx_fetch_seq(findex, const_cast<char*>(chrstring.c_str()), gr.pos1, gr.pos2 - 1, &len);
+    if (seq)
+      s = std::string(seq);
+  } while (!seq || s.find("N") != std::string::npos || grc.findOverlapping(gr));
+
+  }
+
+Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_inter) : m_num_bins(nb), m_num_steps(ns) {
+
+  __initialize_mvec();
+
+  power_law = power_law == 1 ? 1.0001 : power_law;
+
+  int FI = 10000 * frac_inter;
+  int nFI = 0;
+  int nFC = 0;
+
+  for (S i = 0; i < ne; ++i) {
+
+    if (i % 10000 == 0) 
+      std::cerr << "...generating event " << i << " of " << ne <<  std::endl;
 
     std::string key;
-    size_t dcount = 0;
-    GenomicRegion gr1, gr2;
+    SnowTools::GenomicRegion gr1, gr2;
 
-    int dist;
-    bool retry = true; // keep trying until get acceptable simluated event
-    do {
+    // generate the first one
+    gr1.chr = SnowTools::weightedRandom(SnowTools::CHR_CUMSUM_WEIGHT_X); 
+    gr1.pos1 = 1e6 + rand() % (int)(SnowTools::CHR_LEN_VEC[gr1.chr] - 2e6);
+    gr1.pos2 = gr1.pos1;
 
-      gr1.random();
-      gr2.random();
+    assert(gr1.pos1 != 0 && gr1.pos2 != 0);
+    // genereate the second one
 
-      if (dcount++ > 1000) {
-	std::cerr << "Weird loop on gen" << std::endl;
-	exit(EXIT_FAILURE);
-      }
+    // inter chr
+    if (rand() % 10000 <= FI) {
+      ++nFI;
+      do {
+	gr2.chr = SnowTools::weightedRandom(SnowTools::CHR_CUMSUM_WEIGHT_X); 
+	gr2.pos1 = 1e6 + rand() % (int)(SnowTools::CHR_LEN_VEC[gr1.chr] - 2e6);
+	gr2.pos2 = gr2.pos1;
+      } while(gr1.chr == gr2.chr);
+      assert(gr2.pos1 != 0 && gr2.pos2 != 0);
+    } else {
+      ++nFC;
+      do {
+	gr2.chr = gr1.chr;
+	if (rand() % 2 == 0) { // on right 
+	  gr2.pos1 = gr1.pos1 + drawFromPower(MIN_RAR_SIZE, MAX_RAR_SIZE, -power_law); 
+	} else {  // on left
+	  gr2.pos1 = gr1.pos1 - drawFromPower(MIN_RAR_SIZE, MAX_RAR_SIZE, -power_law); 
+	}
+	gr2.pos2 = gr2.pos1;
 
-      dist = gr1.distance(gr2);
+      } while (gr2.pos1 < 0 || gr2.pos1 > SnowTools::CHR_LEN_VEC[gr2.chr]);
+      assert(gr2.pos1 != 0 && gr2.pos2 != 0);
+    } 
 
-      if ( (dist >= 0 && intraRatio() <= 4) || (dist >= 0 && (m_intra+m_inter) < 10)) { // it's intra-chrom and we need one
-	// reject sample for 1/L re-creation
-	S rv;
-	SnowTools::genRandomValue(rv, 1000);
-	
-	assert(gr1.chr == gr2.chr);
-
-	// reject some
-	double one_tenth = nc / 50; // 10Mb - 1/10
-	double tmp = (one_tenth/(double)dist)*1000;
-	
-	if (dist < one_tenth || tmp > rv)
-	  retry = false;
-	//if (dist > one_tenth && tmp < rv)  
-	//  key = "x";
-	//else
-	//  key = gr1.toString() + "--" + gr2.toString(); 
-      } else if ( (dist < 0 && intraRatio() > 4) || (dist < 0 && (m_intra+m_inter) < 10)) { // is inter and we need one
-	retry = false;
-	//key = gr1.toString() + "--" + gr2.toString(); 
-      }
-
-    } while (retry);
-    
+    assert( gr1.pos1 != 0 && gr2.pos1 != 0 && gr1.pos2 != 0 && gr2.pos2 != 0);
     if (gr1 < gr2)
       addMatrixValue(MatrixValue(gr1, gr2));
     else
@@ -148,24 +153,23 @@ static const size_t INTER = 25;
   }
 
   if (m_verbose)
-    std::cout << "Matrix created with " <<  m_intra << " intra- and " << m_inter << " inter- events (ratio " << intraRatio() << ")" << std::endl;
+    std::cerr << "Matrix created with " <<  m_intra << " intra- and " << m_inter << " inter- events (ratio " << intraRatio() << ")" << std::endl;
 
   // fill event histograms
-  if (m_verbose) 
-    std::cout << "filling histogram, m_num_bins=" << m_num_bins << std::endl;
+  //if (m_verbose) 
+  //  std::cerr << "filling histogram, m_num_bins=" << m_num_bins << std::endl;
 
   fillQuantileHistograms(m_num_bins);
-  std::cout << "Histogram created " << std::endl;
+  //std::cerr << "Histogram created " << std::endl;
 
   m_orig = this;
 }
-*/
 
 void Matrix::add(const Matrix& m) {
 
   std::set<std::string> hash;
 
-  //std::cout << "ORIGINAL MATRIX SIZE IS " << m_vec.size() << std::endl;
+  //std::cerr << "ORIGINAL MATRIX SIZE IS " << m_vec.size() << std::endl;
 
   // hash the existing matrix
   for (auto& i : m_vec) 
@@ -174,7 +178,7 @@ void Matrix::add(const Matrix& m) {
 		  std::to_string(j.r.chr) + ":" + std::to_string(j.r.pos1));
   
 
-  //std::cout << "HASHED MATRIX IS SIZE " << hash.size() << std::endl;
+  //std::cerr << "HASHED MATRIX IS SIZE " << hash.size() << std::endl;
 
   // add the element if not there, otherwise update counter
   for (auto& i : m_vec) {
@@ -188,7 +192,7 @@ void Matrix::add(const Matrix& m) {
     }
   }
 
-  //std::cout << "NEW MATRIX SIZE IS " << m_vec.size() << std::endl;
+  //std::cerr << "NEW MATRIX SIZE IS " << m_vec.size() << std::endl;
 }
   
 void Matrix::fillQuantileHistograms(size_t num_bins) {
@@ -253,7 +257,7 @@ void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm)
   for (S i = 0; i < m_num_steps; i++) {
     doSwap();
     //if (m_verbose > 1/* && i % 100 == 0*/) {
-    //  std::cout << "...step " << i << " of " << m_num_steps << std::endl;
+    //  std::cerr << "...step " << i << " of " << m_num_steps << std::endl;
     //}
   }
   // save the matrix
@@ -268,10 +272,10 @@ void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm)
   // print it out if need be
   //size_t mcount = allm->size();
   //if ((mcount % 1 == 0 && m_verbose) || (mcount == 1 && m_verbose)) {
-  std::cout << "Swapped " << m_id << " matrices -- ";
+  std::cerr << "Swapped " << m_id << " matrices -- " << " shared " << ((double)shared()/(double)(m_intra+m_inter)) << " ";
   SnowTools::displayRuntime(start);
-  std::cout << std::endl;
-  std::cout << printMCMC() << std::endl;
+  std::cerr << std::endl;
+  std::cerr << printMCMC() << std::endl;
 
 #ifdef ANIMATION
   if (m_anim_step > 0 && m_id == 0) {
@@ -290,7 +294,7 @@ void Matrix::doSwap() {
   // new and faster
   size_t chr = INTER; 
 
-  if (!inter_only)
+  if (m_intra && !inter_only)
     chr = rand_chr[m_mcmc.swap_tried];
   size_t i1 = rand_rows[m_mcmc.swap_tried] % m_vec[chr].size();
   size_t i2 = rand_cols[m_mcmc.swap_tried] % m_vec[chr].size();
@@ -375,7 +379,7 @@ void Matrix::doSwap() {
   // output the animation
   if (m_anim_step > 0 && m_id == 0)
     if ( (m_mcmc.swap_tried % m_anim_step) == 0 || m_mcmc.swap_tried == 1) {
-      std::cout << "...writing animation for step " << m_mcmc.swap_tried << " matrix id " << id << std::endl;
+      std::cerr << "...writing animation for step " << m_mcmc.swap_tried << " matrix id " << id << std::endl;
       this->toCSV(of_anim, of_anim_hist, of_anim_hist_small, m_mcmc.swap_tried);
     }
 #endif
@@ -493,9 +497,7 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
   size_t masked = 0;
 
   // initialize the m_vec
-  assert(m_vec.size() == 0);
-  for (size_t i = 0; i < 26; i++)
-    m_vec.push_back({});
+  __initialize_mvec();
 
   // loop through the files and add the events
   std::string file;
@@ -578,8 +580,12 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	    }
 
 	  } catch(...) {
+	    std::cerr << "********************************" << std::endl;
+	    std::cerr << "********************************" << std::endl;
 	    std::cerr << "Error converting VCF line from std::string to number. Line " << event_line << std::endl;
 	    std::cerr << "chr1 " << chr1 << " chr2 " << chr2 << std::endl;
+	    std::cerr << "********************************" << std::endl;
+	    std::cerr << "********************************" << std::endl;
 	  }
 	} // end ## conditional
 	
@@ -589,29 +595,32 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
       
       // remove events if too many
       //if (new_events > MAX_EVENTS && false) {
-      //	std::cout << "!!! Too many events: " << new_events << " -- ignoring all in this file !!!" << std::endl;
+      //	std::cerr << "!!! Too many events: " << new_events << " -- ignoring all in this file !!!" << std::endl;
       //	m.erase(m.end() - new_events, m.end());
       //}
       
     } // end file OK conditional
 
     if (file_counter % 100 == 0)
-      std::cout << "...imported VCF file " << file_counter << " of " << num_files << " with " << new_events << " events " << std::endl;
+      std::cerr << "...imported VCF file " << file_counter << " of " << num_files << " with " << new_events << " events " << std::endl;
 
   } // end VCF file list
 
   if (m_verbose) 
-    std::cout << "Imported " << (m_inter+m_intra) << " breakpoints with " << masked << " masked events " << std::endl;
+    std::cerr << "Imported " << (m_inter+m_intra) << " breakpoints with " << masked << " masked events " << std::endl;
 
   if ((m_intra+m_inter) == 0) {
+    std::cerr << "********************************" << std::endl;
+    std::cerr << "********************************" << std::endl;
     std::cerr << "ERROR: Didn't import any events" << std::endl;
+    std::cerr << "********************************" << std::endl;
+    std::cerr << "********************************" << std::endl;
     exit(EXIT_FAILURE);
   }
 
   //dedupe();
 
   // scramble to make even around the diagonal
-  srand(1);
   for (auto& i : m_vec) 
     for (auto& j : i) 
       if (rand() % 2)
@@ -764,7 +773,6 @@ void Matrix::generateRandomVals() {
 #else
 
   // fill the values
-  //srand(m_id);
   unsigned short seed[3] = {155,0,155};
   for (size_t i = 0; i < m_num_steps; ++i){
     rand_rows[i] = nrand48(&seed[0]) % (m_intra+m_inter);
@@ -832,7 +840,7 @@ void Matrix::dedupe() {
 
   }
   
-  std::cout << "Events before dedupe: " << (m_intra+m_inter) << " after " << (inter+intra) << std::endl;
+  std::cerr << "Events before dedupe: " << (m_intra+m_inter) << " after " << (inter+intra) << std::endl;
   m_vec = new_vec;
   m_intra = intra;
   m_inter = inter;
@@ -851,6 +859,7 @@ OverlapResult Matrix::checkOverlaps(SnowTools::GRC * grvA, SnowTools::GRC * grvB
   for (auto& i : m_vec)
     for (auto& j : i) {
       if (j.r.chr != j.c.chr) {
+
 	size_t ovl1 = grvA->findOverlapping(j.r);
 	size_t ovl2 = grvB->findOverlapping(j.c);
 
@@ -866,3 +875,11 @@ OverlapResult Matrix::checkOverlaps(SnowTools::GRC * grvA, SnowTools::GRC * grvB
 
   return OverlapResult(overlap, no_overlap);
  }
+
+void Matrix::__initialize_mvec() {
+  
+  assert(m_vec.size() == 0);
+  for (size_t i = 0; i < 26; i++)
+    m_vec.push_back({});
+
+}

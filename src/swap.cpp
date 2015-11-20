@@ -33,28 +33,46 @@ namespace opt {
 
   static string bed_list = "";
 
+  static int mode = -1;
+
+  static int seed = 42;
+
+  static double frac_inter = 0.2;
+
   static string bedA;
   static string bedB;
   static string mask;
 
   static bool inter_only = false;
 
+  static double power_law = 1;
+
+  static int num_events = 1000;
 };
 
-static const char* shortopts = "hr:v:n:k:e:c:n:p:b:t:a:i:x:y:m:s:B:I";
+enum {
+  OPT_SIMULATE
+};
+
+static const char* shortopts = "S:hr:v:P:F:n:k:e:c:n:p:b:t:a:i:x:y:m:s:B:I";
 static const struct option longopts[] = {
   { "help",               no_argument, NULL, 'h' },
   { "input-vcf-list",     required_argument, NULL, 'i' },
   { "store-matrices",     required_argument, NULL, 's' },
   { "verbose",            required_argument, NULL, 'v' },
   { "anim-step",          required_argument, NULL, 'a' },
+  { "simulate",          no_argument, NULL, OPT_SIMULATE },
   { "num-steps",          required_argument, NULL, 'k' },
+  { "frac-inter",          required_argument, NULL, 'F' },
   { "num-matrices",       required_argument, NULL, 'n' },
   { "inter-chr-only",        no_argument, NULL, 'I' },
   { "num-threads",        required_argument, NULL, 'p' },
+  { "power-law",        required_argument, NULL, 'P' },
+  { "seed",        required_argument, NULL, 'S' },
   { "half-life",          required_argument, NULL, 't' },
   { "num-bins",           required_argument, NULL, 'b' },
   { "bed-list",           required_argument, NULL, 'B' },
+  { "num-events",           required_argument, NULL, 'e' },
   { "bed-file-mask",           required_argument, NULL, 'm' },
   { NULL, 0, NULL, 0 }
 };
@@ -74,12 +92,17 @@ static const char *MATRIX_USAGE_MESSAGE =
 "  -m, --event-mask                     BED file to mask events from. If a breakpoint falls in this mask, it is not included.\n"
 "  -s, --stored-matrices                Load matrices stored on disk and test hypotheses\n"
 "  -I, --inter-chr-only                 Run only inter-chromosomal events. Much much faster, but lower power.\n" 
+"  Simulation options (--simulate)\n"
+"  -e, --num-events                     Number of events to simulate.\n" 
+"  -P, --power-law                      Power law parameter from which to draw lengths from (1^(-P)). Default 1.0\n" 
+"  -F, --frac-inter                     Fraction of events to be inter-chromosomal. Default 0.2\n" 
+"  -S, --seed                           Seed for the RNG. Default 42\n" 
 "\n";
 
 int main(int argc, char** argv) {
 
 #ifdef __APPLE__
-  cout << "CLOCK_GETTIME NOT AVAILABLE ON MAC" << endl;
+  cerr << "CLOCK_GETTIME NOT AVAILABLE ON MAC" << endl;
 #else
   // start the timer
   clock_gettime(CLOCK_MONOTONIC, &start);
@@ -95,23 +118,25 @@ int main(int argc, char** argv) {
 
   if (opt::verbose) {
     if (opt::input.length())
-      cout << "Input VCF list: " << opt::input << endl;
+      cerr << "Input VCF list: " << opt::input << endl;
     else if (opt::stored_matrices.length()) {
-      cout << "Stored matrix file " << opt::stored_matrices << endl;
+      cerr << "Stored matrix file " << opt::stored_matrices << endl;
     } 
-    cout << "Num matrices:  " << opt::num_matrices << endl;
-    cout << "Num steps:     " << opt::num_steps << endl;
-    cout << "Num hist bins: " << opt::num_bins << endl;
-    cout << "Num threads:   " << opt::numThreads << endl;
-    cout << "Temp 1/2 life: " << opt::half_life << endl;
-    cout << "Animation:     " << (opt::anim_step > 0 ? to_string(opt::anim_step) : "OFF")  << endl;
-    cout << "BED list:      " << (opt::bed_list) << endl;
-    cout << "BED file mask: " << (opt::mask.length() ? opt::mask : "NONE") << endl;
-    
+    cerr << "Matrices: " << opt::num_matrices << "\tSteps: " << opt::num_steps << "\tHistBins: " << opt::num_bins << endl;
+    cerr << "Temp 1/2 life: " << opt::half_life << endl;
+    cerr << "Animation:     " << (opt::anim_step > 0 ? to_string(opt::anim_step) : "OFF")  << endl;
+    cerr << "BED list:      " << (opt::bed_list) << endl;
+    //cerr << "BED file mask: " << (opt::mask.length() ? opt::mask : "NONE") << endl;
+
+    if (opt::mode == OPT_SIMULATE) {
+      cerr << "--------------- Simulating events ----------------" << std::endl;
+      cerr << "Num events: " << (opt::num_events) << "\tPowerLaw: " << opt::power_law << " FracInter: " << opt::frac_inter << std::endl;
+      cerr << "--------------------------------------------------" << std::endl;
+    }
     if (opt::half_life == 0) 
-      std::cout << "TEMPERATURE SET TO ZERO" << std::endl;
+      std::cerr << "TEMPERATURE SET TO ZERO" << std::endl;
     else if ((double)opt::half_life/(double)opt::num_steps >= 1)
-      std::cout << "TEMPERATURE SET TO INFINITE" << std::endl;      
+      std::cerr << "TEMPERATURE SET TO INFINITE" << std::endl;      
 
     if (opt::inter_only)
       std::cerr << "--------------------------------------------\n" << 
@@ -123,7 +148,7 @@ int main(int argc, char** argv) {
   // read the bed files
   if (opt::bed_list.length()) {
     if (opt::verbose) 
-      std::cout << "...Importing BED files" << std::endl;
+      std::cerr << "...Importing BED files" << std::endl;
 
     igzstream ibl(opt::bed_list.c_str());
     if (!ibl) { std::cerr << "Can't read bed list file: " << opt::bed_list << std::endl; return 1; }
@@ -141,11 +166,11 @@ int main(int argc, char** argv) {
 	    if (count == 1)
 	      bedid = val;
 	    else {
-	      //std::cout << "...reading in " << val << std::endl;
+	      //std::cerr << "...reading in " << val << std::endl;
 	      all_bed[bedid] = SnowTools::GRC();
 	      all_bed[bedid].regionFileToGRV(val);
 	      all_bed[bedid].createTreeMap();
-	      std::cout << "...read in " << bedid << " with " << all_bed[bedid].size() << " regions " << std::endl;
+	      std::cerr << "...read in " << bedid << " with " << all_bed[bedid].size() << " regions " << std::endl;
 	    }
 	  }
 	}
@@ -157,22 +182,28 @@ int main(int argc, char** argv) {
   if (opt::mask.length()) {
     grv_m.regionFileToGRV(opt::mask);
     grv_m.createTreeMap();
-    std::cout << "Read in " << grv_m.size() << " region from the mask file " << opt::mask << endl;
+    std::cerr << "Read in " << grv_m.size() << " region from the mask file " << opt::mask << endl;
   }
 
   Matrix *m = nullptr;
 
-  if (opt::input.length())
+  //std::cerr << " nr " << opt::nr << " nc " << opt::nc << " num_events " << opt::num_events << " num_steps " << opt::num_steps << std::endl;
+
+  std::srand(opt::seed);
+
+  if (opt::input.length() && opt::mode != OPT_SIMULATE) {
     // read in events from a list of VCFs
     m = new Matrix(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only);
-  //else if (!opt::stored_matrices.length())
+  } else if (opt::mode == OPT_SIMULATE) {
     // make a random matrix
-  //  m = new Matrix(opt::nr, opt::nc, opt::num_events, opt::num_bins, opt::num_steps);
-  else if (opt::stored_matrices.length()) {
+    std::cerr << "...simulating matrix with seed " << opt::seed << std::endl;
+    m = new Matrix(opt::num_events, opt::num_bins, opt::num_steps, opt::power_law, opt::frac_inter);
+  } else if (opt::stored_matrices.length()) {
     std::cerr << "...reading stored matrices" << std::endl;
     readStoredMatrices(opt::stored_matrices);
   }
 
+  double frac_inter = m->m_inter / (m->m_inter+m->m_intra);
   //if (all_mats.size() == 0)
   //  opt::num_steps = 1;
 
@@ -183,9 +214,6 @@ int main(int argc, char** argv) {
   probs[2] = (uint16_t*) calloc(opt::num_steps, sizeof(uint16_t));
   probs[3] = (uint16_t*) calloc(opt::num_steps, sizeof(uint16_t));
   
-  std::cerr << "ALL_MATS.SIZE() " << all_mats.size() << std::endl;
-  std::cerr << "INTER_ONLY: " << opt::inter_only << std::endl;
-
   if (all_mats.size() == 0) {
 
     // pre-compute the temps
@@ -203,7 +231,7 @@ int main(int argc, char** argv) {
 	probs[2][i] = (uint16_t)std::min(std::floor(exp(-3/tempr)*TRAND), (double)TRAND);
 	probs[3][i] = (uint16_t)std::min(std::floor(exp(-4/tempr)*TRAND), (double)TRAND);
 	if (i % 2000000 == 0)
-	  std::cout << "P(least-non-optimal) " << probs[0][i] << " P(most-non-optimal) " << probs[3][i] << " Temp " << tempr << " Step " << SnowTools::AddCommas<size_t>(i) << std::endl;
+	  std::cerr << "P(least-non-optimal) " << probs[0][i] << " P(most-non-optimal) " << probs[3][i] << " Temp " << tempr << " Step " << SnowTools::AddCommas<size_t>(i) << std::endl;
       }
       // half life is huge, so we don't want to decay at all (permanently hot)
     } else if ((double)opt::half_life/double(opt::num_steps) >= 1) { 
@@ -219,7 +247,7 @@ int main(int argc, char** argv) {
     
     // precompute the histogram bins
     if (!opt::inter_only) {
-      std::cout << "...precomputing bin indicies" << std::endl;
+      std::cerr << "...precomputing bin indicies" << std::endl;
       uint32_t max_dist = 250000000;
       uint8_t * bin_table = (uint8_t*) calloc(max_dist, sizeof(uint8_t));
       for (size_t i = 1; i < max_dist; ++i)
@@ -232,12 +260,12 @@ int main(int argc, char** argv) {
 
 
     // precompute which chrom to acces
-    if (!opt::inter_only) {
-      std::cout << "...pre-computing which chromsomes to swap on for each step" << std::endl;
+    if (!opt::inter_only && frac_inter < 1) {
+      std::cerr << "...pre-computing which chromsomes to swap on for each step" << std::endl;
       sitmo::prng_engine eng1;
       eng1.seed(1337);
 
-      size_t num_intra = (size_t)std::floor((double)opt::num_steps *0.97);
+      size_t num_intra = frac_inter < 1 ? std::floor((double)opt::num_steps * (1 - 0.8 * frac_inter)) : opt::num_steps;
       uint8_t * rand_chr = (uint8_t*) calloc(opt::num_steps, sizeof(uint8_t));
       std::cerr << "...number of swaps to make intra-chromosomal: " << SnowTools::AddCommas(num_intra) << std::endl;
 
@@ -265,32 +293,32 @@ int main(int argc, char** argv) {
       m->rand_chr = rand_chr;
     }  
   } // done with check all_mats.size()
-  
   // output the original matrix
-  std::cout << "...outputting original data to csv" << std::endl;
   std::ofstream initial;
   initial.open("original.csv");
+
+
+  // output the size histograms
   std::ofstream initial_h;
   initial_h.open("original.histogram.csv");
   std::ofstream initial_h_small;
   initial_h_small.open("original.histogram.small.csv");
-
   m->toCSV(initial, initial_h, initial_h_small);
   initial.close();
   initial_h.close();
   initial_h_small.close();
 
-  if (opt::verbose) {
-    cout << "...done importing" << endl;
+
+  if (opt::verbose && opt::mode != OPT_SIMULATE) {
+    cerr << "...done importing" << endl;
 #ifndef __APPLE__
     SnowTools::displayRuntime(start);
-    cout << endl;
+    cerr << endl;
 #endif
   }
 
   // set up the result files
   std::ofstream results("results.csv");
-  
   // write the original overlaps
   std::unordered_map<std::string, OverlapResult> all_overlaps;
   std::unordered_map<std::string, bool> ovl_ovl_seen;
@@ -300,7 +328,7 @@ int main(int argc, char** argv) {
 	OverlapResult ovl = m->checkOverlaps(&i.second, &j.second);
 	std::string ovl_name = i.first + "," + j.first;
 	all_overlaps[ovl_name] = ovl;
-	std::cout << " ORIGINAL OVERLAP for " << ovl_name << " is "  << ovl.first << " ORIGINAL NO OVERLAP " << ovl.second << std::endl;      
+	std::cerr << " ORIGINAL OVERLAP for " << ovl_name << " is "  << ovl.first << " ORIGINAL NO OVERLAP " << ovl.second << std::endl;      
 	results << ovl_name << "," << ovl.first << "," << ovl.second << ",-1" << std::endl; 
 	if (i.first==j.first)
 	  ovl_ovl_seen[i.first] = true;
@@ -343,7 +371,7 @@ int main(int argc, char** argv) {
 	    OverlapResult ovl = mmm->checkOverlaps(&i.second, &j.second);
 	    std::string ovl_name = i.first + "," + j.first;
 	    all_overlaps[ovl_name] = ovl;
-	    //std::cout << " Overlap for "  << ovl_name << " is "  << ovl.first << std::endl;      
+	    //std::cerr << " Overlap for "  << ovl_name << " is "  << ovl.first << std::endl;      
 	    results << ovl_name << "," << ovl.first << "," << ovl.second << "," << mmm->m_id  << std::endl; 
 	    if (i.first==j.first)
 	      ovl_ovl_seen[i.first] = true;
@@ -356,7 +384,6 @@ int main(int argc, char** argv) {
     
   // set the output file
   ogzstream * oz_matrix = nullptr;
-  std::cerr << "all_mats " << all_mats.size() << std::endl;
   if (all_mats.size() == 0) {
     std::string namr = "all.matrices.csv.gz";
     oz_matrix = new ogzstream(namr.c_str(), std::ios::out);
@@ -372,7 +399,7 @@ int main(int argc, char** argv) {
   }
 
   if (opt::verbose)
-    cout << "Sending matrices to threads" << endl;
+    cerr << "Sending matrices to threads" << endl;
   for (size_t i = 0; i < tmp_queue.size(); i++)
     queue.add(tmp_queue[i]);  
   
@@ -399,15 +426,15 @@ int main(int argc, char** argv) {
   if (opt::verbose) {
 #ifndef __APPLE__
     SnowTools::displayRuntime(start);
-    cout << endl;
+    cerr << endl;
 #endif
   }
   //if (opt::verbose)
-  //  cout << "Generating Random Matrices using Self-Loop method" << endl;
+  //  cerr << "Generating Random Matrices using Self-Loop method" << endl;
 
   //for (size_t i = 0; i < opt::num_matrices; i++) {
   //  if (opt::verbose)
-  //    cout << "...generating matrix " << (i+1) << " of " << opt::num_matrices << endl;
+  //    cerr << "...generating matrix " << (i+1) << " of " << opt::num_matrices << endl;
   //  m->allSwaps();
   //  all_mats.push_back(m);
   //}
@@ -428,6 +455,7 @@ void parseMatrixOptions(int argc, char** argv) {
       case 'h': die = true; break;
     case 'I': opt::inter_only = true; break;
       case 'k': arg >> opt::num_steps; break;
+      case OPT_SIMULATE: opt::mode = OPT_SIMULATE; break;
       case 'B': arg >> opt::bed_list; break;
       case 'v': arg >> opt::verbose; break;
       case 's': arg >> opt::stored_matrices; break;
@@ -437,12 +465,15 @@ void parseMatrixOptions(int argc, char** argv) {
       case 'y': arg >> opt::bedB; break;
 	//case 'c': arg >> opt::nc; break;
       case 'a': arg >> opt::anim_step; break;
-	//case 'e': arg >> opt::num_events; break;
+      case 'e': arg >> opt::num_events; break;
+      case 'F': arg >> opt::frac_inter; break;
+      case 'S': arg >> opt::seed; break;
       case 'n': arg >> opt::num_matrices; break;
       case 'b': arg >> opt::num_bins; break;
       case 't': arg >> opt::half_life; break;
       case 'p': arg >> opt::numThreads; break;
       case 'm': arg >> opt::mask; break;
+      case 'P': arg >> opt::power_law; break;
     }
   }
   
@@ -458,7 +489,7 @@ void parseMatrixOptions(int argc, char** argv) {
 
 
   if (die) {
-      cout << "\n" << MATRIX_USAGE_MESSAGE;
+      cerr << "\n" << MATRIX_USAGE_MESSAGE;
       exit(1);
     }
 }

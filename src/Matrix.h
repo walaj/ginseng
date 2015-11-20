@@ -199,6 +199,7 @@ class Matrix {
    * @param ns Number of steps (swaps) to attempt
    */
   //Matrix(S nr, S nc, S ne, size_t nb, size_t ns);
+  Matrix(size_t ne, size_t nb, size_t nsteps, double pl, double frac_inter);
 
   /** Make a matrix from a list of VCF files
    * @param file_list Text file containing list of VCFs
@@ -328,6 +329,8 @@ class Matrix {
     else
       return (double)m_intra/(double)m_inter;
   }
+
+  void __initialize_mvec();
 
   /** Check for events that span two GenomicRegionVector objects
    */
