@@ -100,14 +100,9 @@ class Matrix;
 void parseMatrixOptions(int argc, char** argv);
 void readStoredMatrices(const std::string& file);
 
-
-static const std::string anim_file = "animation.csv";
-static const std::string anim_hist_file = "animation.histogram.csv";
-static const std::string anim_hist_small_file = "animation.histogram.small.csv";
 static std::ofstream of_anim; 
 static std::ofstream of_anim_hist; 
 static std::ofstream of_anim_hist_small; 
-
 
 template <typename T> class wqueue
 { 

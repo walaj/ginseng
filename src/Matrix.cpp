@@ -21,7 +21,7 @@
 #define MAX_RAR_SIZE 200e6
 
 // min distance to be valid. Gets rid of Sanger high FP rate at small events
-#define SANGER_DIST_LIM 8000
+#define SANGER_DIST_LIM 2000
 // dont include VCFs files with more than this many non-comment lines
 #define SANGER_PER_FILE_LIMIT 5000
 
@@ -90,7 +90,7 @@ void genRandomSequence(std::string& s, SnowTools::GenomicRegion& gr, int width, 
 
   }
 
-Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_inter) : m_num_bins(nb), m_num_steps(ns) {
+Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_inter, const std::string& tid) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid) {
 
   __initialize_mvec();
 
@@ -99,7 +99,8 @@ Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_in
   int FI = 10000 * frac_inter;
   int nFI = 0;
   int nFC = 0;
-
+  int ttid = 0;
+  
   for (S i = 0; i < ne; ++i) {
 
     //if (i % 10000 == 0) 
@@ -145,10 +146,16 @@ Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_in
     assert(gr1.pos1 < SnowTools::CHR_LEN_VEC[gr1.chr]);
 
     assert( gr1.pos1 != 0 && gr2.pos1 != 0 && gr1.pos2 != 0 && gr2.pos2 != 0);
-    if (gr1 < gr2)
-      addMatrixValue(MatrixValue(gr1, gr2));
-    else
-      addMatrixValue(MatrixValue(gr2, gr1));
+    MatrixValue mv;
+    if (gr1 < gr2) {
+      mv = MatrixValue(gr1, gr2);
+    } else {
+      mv = MatrixValue(gr2, gr1);
+    }
+    mv.id = ttid;
+    ++ttid;
+    addMatrixValue(mv);
+    
   }
 
   if ((m_intra+m_inter) == 0) {
@@ -236,6 +243,9 @@ void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm)
 #ifdef ANIMATION
   // open the animation file if need to
   if (m_anim_step > 0 && m_id == 0) {
+    std::string anim_file = analysis_id + ".animation.csv";
+    std::string anim_hist_file = analysis_id + ".animation.histogram.csv";
+    std::string anim_hist_small_file = analysis_id + ".animation.histogram.small.csv";
     of_anim.open(anim_file.c_str());
     of_anim_hist.open(anim_hist_file.c_str());
     of_anim_hist_small.open(anim_hist_small_file.c_str());
@@ -278,8 +288,7 @@ void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm)
   //size_t mcount = allm->size();
   //if ((mcount % 1 == 0 && m_verbose) || (mcount == 1 && m_verbose)) {
   std::cerr << "Swapped " << m_id << " matrices -- " << " shared " << ((double)shared()/(double)(m_intra+m_inter)) << " ";
-  SnowTools::displayRuntime(start);
-  std::cerr << std::endl;
+  std::cerr << SnowTools::displayRuntime(start) << " ";
   std::cerr << printMCMC() << std::endl;
 
 #ifdef ANIMATION
@@ -410,7 +419,7 @@ void Matrix::toCSV(std::ofstream &fs, std::ofstream &fh, std::ofstream &fh_small
 
   for (auto& i : m_vec) 
     for (auto& j : i)
-      fs << j.r.chr << "," << j.r.pos1 << "," << j.c.chr << "," << j.c.pos1 << "," << j.count << "," << step << std::endl;
+      fs << j.r.chr << "," << j.r.pos1 << "," << j.c.chr << "," << j.c.pos1 << "," << j.count << "," << step << "," << j.id << std::endl;
 
   m_mcmc.old_accepted = m_mcmc.accepted;
   
@@ -463,30 +472,41 @@ void Matrix::writeBinary() const {
 
 int Matrix::energyShift(S odist1, S odist2, S pdist1, S pdist2) {
 
-  int shift = 0;
+  // negative energy means more favorable histogram is being made
 
   // calculate energy shift
-  int weight1 = abs((int)hist_swap.binCount(bin_table[odist1]) - (int)hist.binCount(bin_table[odist1]));
+  //int shift = hist.binCount(bin_table[odist1]) - hist_swap.binCount(bin_table[odist1]) +
+  //  hist.binCount(bin_table[odist2]) - hist_swap.binCount(bin_table[odist2]) + 
+  //  hist_swap.binCount(bin_table[pdist1]) - hist.binCount(bin_table[pdist1]) + 
+  //  hist_swap.binCount(bin_table[pdist2]) - hist.binCount(bin_table[pdist2]);
+
+  int shift = 0;
+  int weight1 = abs(hist_swap.binCount(bin_table[odist1]) - hist.binCount(bin_table[odist1]));
   shift += (hist_swap.binCount(bin_table[odist1]) >  hist.binCount(bin_table[odist1]) ? -1 : 1)*weight1;
-  int weight2 = abs((int)hist_swap.binCount(bin_table[odist2]) - (int)hist.binCount(bin_table[odist2]));
+  int weight2 = abs(hist_swap.binCount(bin_table[odist2]) - hist.binCount(bin_table[odist2]));
   shift += (hist_swap.binCount(bin_table[odist2]) >  hist.binCount(bin_table[odist2]) ? -1 : 1)*weight2;
-  int weight3 = abs((int)hist_swap.binCount(bin_table[pdist1]) - (int)hist.binCount(bin_table[pdist1]));
+  int weight3 = abs(hist_swap.binCount(bin_table[pdist1]) - hist.binCount(bin_table[pdist1]));
   shift += (hist_swap.binCount(bin_table[pdist1]) >= hist.binCount(bin_table[pdist1]) ? 1 : -1)*weight3;
-  int weight4 = abs((int)hist_swap.binCount(bin_table[pdist2]) - (int)hist.binCount(bin_table[pdist2]));
+  int weight4 = abs(hist_swap.binCount(bin_table[pdist2]) - hist.binCount(bin_table[pdist2]));
   shift += (hist_swap.binCount(bin_table[pdist2]) >= hist.binCount(bin_table[pdist2]) ? 1 : -1)*weight4;
 
-  if (shift < -4)
-    shift = -4;
-  else if (shift > 4)
-    shift = 4;
+  shift = shift > 4 ? 4 : shift;
+  //shift = shift < -4 ? -4 : shift;
+
+  //if (shift < -4)
+  //  shift = -4;
+  //else if (shift > 4)
+  //  shift = 4;
       
   return shift;
 
 }
 
-Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GRC &mk, bool inter_only) : m_num_bins(nb), m_num_steps(ns) {
+Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid) {
 
   this->inter_only = inter_only;
+
+  size_t good_files = 0;
   
   //open the file
   igzstream inFile(file_list.c_str());
@@ -505,25 +525,50 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
   __initialize_mvec();
 
   // loop through the files and add the events
-  std::string file;
+  std::string fileline, file;
   size_t file_counter = 0;
-  while (std::getline(inFile, file)) {
-    file_counter++;
+  while (std::getline(inFile, fileline)) {
+    
+    // get the first field, its the file name
+    std::istringstream issf(fileline);
+    while(std::getline(issf, file, '\t')) 
+      break;
+    
+    ++file_counter;
     size_t new_events = 0;
     if (!SnowTools::read_access_test(file)) {
       std::cerr << "VCF File: "  << file << " not readable or does not exist" << std::endl;
-    } else {
-      std::string val;
-      igzstream this_file(file.c_str());
-      std::string event_line;
-      
-      size_t num_events_in_file = SnowTools::countLines(file,"#");
-      if (num_events_in_file < SANGER_PER_FILE_LIMIT) // block if too many lines
+      continue;
+    }
+
+    // check the identifiers
+    bool good = identifiers.size() == 0;
+    for (auto& id : identifiers) {
+      if (fileline.find(id) != std::string::npos) {
+	good = true;
+	break;
+      }
+    }
+    if (!good)
+      continue;
+
+    ++good_files;
+
+    std::string val;
+    igzstream this_file(file.c_str());
+    std::string event_line;
+    
+    size_t num_events_in_file = SnowTools::countLines(file,"#");
+    if (num_events_in_file < SANGER_PER_FILE_LIMIT) // block if too many lines
       while (std::getline(this_file, event_line)) {
 	if (event_line.length() > 0 && event_line.at(0) != '#') {
 	  size_t count = 0;
 	  std::string chr1 = "-1", pos1 = "-1", chr2 = "-1", pos2 = "-1";
 	  std::istringstream iss(event_line);
+	  
+	  // remove non human
+	  if (event_line.find("GL00") != std::string::npos || event_line.find("gi|") != std::string::npos)
+	    continue;
 
 	  // regex to get mate information
 	  while (std::getline(iss, val, '\t')) {
@@ -542,15 +587,16 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	      break;
 	    } // end switch
 	  } // end intra-line loop
-
+	  
 	  // check that we have the data
 	  if (chr1 == "-1" || pos1 == "-1" || chr2 == "-1" || pos2 == "-1")
 	    std::cerr << "Failed to parse VCF on line " << event_line << std::endl;
-
+	  
 	  // convert to numbers
 	  try { 
-
+	    
 	    MatrixValue mv(chr1, pos1, chr2, pos2);
+	    mv.id = good_files;// give unique id
 	    
 	    // check the mask
 	    bool keep = true;
@@ -575,8 +621,8 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	    }
 	    
 	    // sanger conditional on distance
-	    if ( mv.distance() >= SANGER_DIST_LIM && keep && (mv.r < mv.c) && (!inter_only || mv.r.chr != mv.c.chr)) {
-
+	    if ( mv.r.chr >= 0 && mv.c.chr >= 0 && mv.distance() >= SANGER_DIST_LIM && keep && (mv.r < mv.c) && (!inter_only || mv.r.chr != mv.c.chr)) {
+	      
 	      // add the event
 	      addMatrixValue(mv);
 	      
@@ -593,26 +639,23 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	    std::cerr << "********************************" << std::endl;
 	  }
 	} // end ## conditional
-	
       } // end intra-file loop
-      else 
-	std::cerr << "!!! Removed file " << file << " with too many events: " << num_events_in_file<< std::endl;
-      
+    else 
+      std::cerr << "!!! Removed file " << file << " with too many events: " << num_events_in_file<< std::endl;
+    
       // remove events if too many
       //if (new_events > MAX_EVENTS && false) {
       //	std::cerr << "!!! Too many events: " << new_events << " -- ignoring all in this file !!!" << std::endl;
       //	m.erase(m.end() - new_events, m.end());
       //}
       
-    } // end file OK conditional
-
     if (file_counter % 100 == 0)
       std::cerr << "...imported VCF file " << file_counter << " of " << num_files << " with " << new_events << " events " << std::endl;
-
+    
   } // end VCF file list
-
+  
   if (m_verbose) 
-    std::cerr << "Imported " << (m_inter+m_intra) << " breakpoints with " << masked << " masked events " << std::endl;
+    std::cerr << "Imported " << (m_inter+m_intra) << " breakpoints from " << good_files << " file. Masked out " << masked << " events " << std::endl;
 
   if ((m_intra+m_inter) == 0) {
     std::cerr << "********************************" << std::endl;

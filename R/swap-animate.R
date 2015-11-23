@@ -1,5 +1,8 @@
 #!/usr/bin/env Rscript
 
+## height of the "real" bar in the histograms. Higher number for higher num matrices
+YHEIGHT = 600
+
 ## check for ImageMagick
 if (!grepl("imagemagick", Sys.getenv("PATH")))
   stop("Need to have ImageMagick installed for use with R animation package. Broad: use ImageMagick")
@@ -7,42 +10,23 @@ if (!grepl("imagemagick", Sys.getenv("PATH")))
 library(optparse)
 
 option_list = list(
-  make_option(c("-i", "--input"),        type = "character", default = "animation.csv",  help = "Animation data file from swap (default: animation.csv"),
-  make_option(c("-r", "--results"),        type = "character", default = "results.csv",  help = "Animation data file from swap (default: animation.csv"),
-  make_option(c("-o", "--output"),       type = "character", default = "swap.gif",  help = "Output GIF to generate"),
+  make_option(c("-C", "--chrom"),        type = "numeric", default = 0,  help = "Limit animation to one chromosome (0 = dont)"),    
+  make_option(c("-a", "--analysis_id"),        type = "character", default = "no_id",  help = "Animation data file from swap (default: animation.csv"),  
   make_option(c("-t", "--interval"),     type = "numeric", default = 0.2,  help = "GIF interval (in seconds)"),
-  make_option(c("-w", "--width"),        type = "numeric", default = 2000,  help = "Animation width (default 2000)"),
+  make_option(c("-w", "--width"),        type = "numeric", default = 800,  help = "Animation width (default 800)"),
   make_option(c("-d", "--downsample"),   type = "numeric", default = 1.0,  help = "Downsample events by to this fraction of original. Default 1"),
   make_option(c("-f", "--firstandlast"), type="logical", default=FALSE, help="GIF data and final swap only"),
-  make_option(c("-a", "--bedA"),         type="character", default=NULL, help="BED file for test regions A"),
-  make_option(c("-b", "--bedB")        , type="character", default=NULL, help="BED file for test regions B"),
   make_option(c("-s", "--scale")        , type="numeric", default=1e6, help="Amount to round coordinates to for plotting. Default 1e6"),
-  make_option(c("-k", "--height"),       type = "numeric", default = 1000,  help = "Animation height (default 1000)")
+  make_option(c("-k", "--height"),       type = "numeric", default = 800,  help = "Animation height (default 800)")
   )
 
 parseobj = OptionParser(option_list=option_list)
 opt = parse_args(parseobj)
+aid = opt$analysis_id
 
-opt$output = paste(normalizePath(opt$output))
-
-if (!file.exists(opt$input)) {
+if (!file.exists(paste0(aid,".animation.csv"))) {
   print(print_help(parseobj))
-  stop(paste("Animation file does not exist", opt$input))
-}
-
-if (!file.exists(opt$results)) {
-  print(print_help(parseobj))
-  stop(paste("Results file does not exist", opt$results))
-}
-
-if (!is.null(opt$bedA) && !file.exists(opt$bedA)) {
-  print(print_help(parseobj))
-  stop(paste("BED file A does not exist", opt$bedA))
-}
-
-if (!is.null(opt$bedB) && !file.exists(opt$bedB)) {
-  print(print_help(parseobj))
-  stop(paste("BED file B does not exist", opt$bedB))
+  stop(paste("Animation file does not exist", paste0(aid,".animation.csv")))
 }
 
 SCALE=opt$scale
@@ -96,8 +80,14 @@ fancy_scientific <- function(l) {
 ## set the non-scrambled
 print("...reading CSV file")
                                         #bt <- read.delim(opt$input, sep=",", header=FALSE)
-bt <- fread(opt$input)
+print("...reading animation csv")
+bt <- fread(paste0(aid, ".animation.csv"))
 setnames(bt, c("V1","V2","V3","V4","V5","V6"), c("chr1","pos1","chr2", "pos2", "count", "step")) ##, "T", "accepted","shared")
+if (opt$chrom > 0) {
+  print(paste("LIMING TO JUST CHROMOSOME", opt$chrom))
+  bt <- bt[chr1 == (opt$chrom-1) | chr2 == (opt$chrom-1)]
+  print(nrow(bt))
+}
 bt[, type := ifelse(step==1, "Data", "Swap")]
 bt[, d := ifelse(chr1==chr2, abs(pos1-pos2),-1)]
 data.ix = bt$type == "Data"
@@ -108,13 +98,13 @@ mx = max(bt$step)
 
 ## read in the histogram data
 print('...reading histogram file')
-ht <- read.delim(gsub("animation.csv", "animation.histogram.csv", opt$input), sep=",", header=FALSE)
+ht <- read.delim(paste0(aid, ".animation.histogram.csv"), sep=',', header=FALSE)
 ht$step = rep(unique(bt$step), each=abs(diff(which(ht$V1==0)[1:2]))) ## add the step information
 ht <- ht[ht$V1 != 250e6, ]# don't plot inter-chrom events
 
 ## read in the small histogram data
 print('...reading small histogram file')
-ht_s <- read.delim(gsub("animation.csv", "animation.histogram.small.csv", opt$input), sep=",", header=FALSE)
+ht_s <- read.delim(paste0(aid, ".animation.histogram.small.csv"), sep=',', header=FALSE)
 ht_s$step = rep(unique(bt$step), each=abs(diff(which(ht_s$V1==0)[1:2]))) ## add the step information
 ht_s <- ht_s[ht_s$V1 != 250e6, ] # don't plot inter-chrom events
 
@@ -137,13 +127,20 @@ ht_s <- ht_s[ht_s$V1 != 250e6, ] # don't plot inter-chrom events
                                         #}
 
 ## convert to absolute dist
-bt[, full_pos1 := hg19_clen[chr1+1] + pos1] ## +1 for 1 indexed vecs in R
-bt[, full_pos2 := hg19_clen[chr2+1] + pos2] ## +1 for 1 indexed vecs in R
+if (opt$chrom > 0) {
+  bt[, full_pos1 := pos1] ## +1 for 1 indexed vecs in R
+  bt[, full_pos2 := pos2] ## +1 for 1 indexed vecs in R
+} else {
+  bt[, full_pos1 := hg19_clen[chr1+1] + pos1] ## +1 for 1 indexed vecs in R
+  bt[, full_pos2 := hg19_clen[chr2+1] + pos2] ## +1 for 1 indexed vecs in R
+}
 
 ## round to nearest Mb for plotting
 bt[, dsam1 := round(full_pos1/SCALE)]
 bt[, dsam2 := round(full_pos2/SCALE)]
 
+print(paste("MAX dsam1", max(bt$dsam1)))
+print(paste("MAX dsam2", max(bt$dsam2)))
 ## downsample
                                         #ne <- sum(bt$type == "Data")
                                         #sss <- rep(FALSE, ne)
@@ -175,17 +172,19 @@ max.d = max(bt$d[bt$d >=0])
                                         #df.s$shared = df.s$shared / sum(data.ix)
 
 ## make the results histogram
-print("...reading results CSV file")
-if (file.info(opt$results)$size > 0) {
+RFILE <- paste0(aid, ".results.csv")
+if (file.exists(RFILE) && file.info(RFILE)$size > 0) {
   
-  rt <- read.delim(opt$results, sep=",", header=FALSE)
+  print(paste("...reading results CSV file:", RFILE))
+  rt <- read.delim(RFILE, sep=",", header=FALSE)
+  print(nrow(rt))
   colnames(rt) <- c("reg1", "reg2","Overlap", "No_Overlap", "ID")
   rt$EXP = paste(rt$reg1, rt$reg2, sep="--")
   
   print(max(rt$ID))
   
   size = 1
-                                        #id.to.keep <- c("FRAG--FRAG") #,"GENE--GENE","FRAG--GENE","GENE_SHUF--GENE_SHUF","FRAG--GENE_SHUF") #, "GENE--PROM_SHUF","GENE_SHUF--PROM_SHUF")
+  ##id.to.keep <- c("FRAG--FRAG") #,"GENE--GENE","FRAG--GENE","GENE_SHUF--GENE_SHUF","FRAG--GENE_SHUF") #, "GENE--PROM_SHUF","GENE_SHUF--PROM_SHUF")
   id.to.keep <- unique(rt$EXP)
   rt <- rt[rt$EXP %in% id.to.keep,]
   dt.rt <- data.table(rt)
@@ -194,57 +193,59 @@ if (file.info(opt$results)$size > 0) {
   
                                         #levels(rt$EXP <- factor(rt$EXP))
                                         #levels(rt$EXP) <- c("Fragile-Fragile", "Fragile-Gene", "Fragile-Gene Shuffle", "Gene-Gene", "Gene Shuffle-Gene Shuffle")
-  dum0 <- data.frame(EXP=rep(rt$EXP[rt$ID==-1], each=2), x=rep(rt$Overlap[rt$ID==-1], each=2),y=rep(c(0,300), sum(rt$ID==-1)))
+  dum0 <- data.frame(EXP=rep(rt$EXP[rt$ID==-1], each=2), x=rep(rt$Overlap[rt$ID==-1], each=2),y=rep(c(0,YHEIGHT), sum(rt$ID==-1)))
   g.res <- ggplot() + geom_histogram(data=rt[rt$ID >= 0,c(3,4,5,6)], aes(x=Overlap)) +
     ##ggtitle(paste("Data Overlap:", rt$Overlap[1], "Z-score:", zscore, "Matrices:", nrow(rt)-1, "P-val:", pvalue)) +
-    theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0, aes(x=x, y=y), color="blue")
+    theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0, aes(x=x, y=y), color="red")
                                         #theme(text=element_text(size+10))
-  pdf("result.pdf", height=20, width=20)
+  pdf(paste0(aid,".results.pdf"), height=30, width=30)
   print(g.res)
   dev.off()
+
 }
 
 MIN = 0
-MAX = hg19_clen[length(hg19_clen)]/SCALE
-SIZE = 0.4
+MAX = max(c(bt$dsam1, bt$dsam2))
+print(paste("MAX", MAX))
+SIZE = 1
 TEXT_SIZE = 12
 
 afunc <- function(bt, steps, data.ix) {
-                                        #sapply(seq_along(steps), function(x) {
+  sapply(seq_along(steps), function(x) {
   
   mx.u <-max(unique(steps))
-  if (steps) { #[x] == 1 && x==1) {
+  if (steps[x] == 1 && x==1) {
     print(paste("Working on DATA"))
-  } else if (steps == mx.u) { ## && x==which(steps==mx.u)[1]) {
+  } else if (steps[x] == mx.u && x==which(steps==mx.u)[1]) {
     print(paste("Working on FINAL"))
-  } else if (steps > 1 && steps < mx.u) {
-    print(paste("Working on step:", steps, "of", mx))
+  } else if (steps[x] > 1 && steps[x] < mx.u) {
+    print(paste("Working on step:", steps[x], "of", mx))
   }
   
-  tix <- bt$step == steps
+  tix <- bt$step == steps[x]
                                         #    tix <- bt$step == steps
   ix = tix | data.ix
   temp <- paste("Temperature:", bt[ix]$T[sum(ix)])
   
   ## do the histogram plot
-  g.dhist <- ggplot() + geom_rect(data=ht[ht$step==steps, ], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill=NA, color='darkred') +
+  g.dhist <- ggplot() + geom_rect(data=ht[ht$step==steps[x], ], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill=NA, color='darkred') +
     geom_rect(data=ht[ht$step==1,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill=NA, color='darkgreen') +
-      geom_rect(data=ht_s[ht_s$step==steps,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill="red", color="red", alpha=0.2) +
+      geom_rect(data=ht_s[ht_s$step==steps[x],], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill="red", color="red", alpha=0.2) +
         geom_rect(data=ht_s[ht_s$step==1,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill="green", color="green", alpha=0.2) +
           theme_bw() + xlab("Span") + ylab("Count") + coord_cartesian(xlim=c(2,8.5), ylim=c(0, max(ht$V3[ht$step==1])*1.1)) + scale_x_continuous(labels=fancy_scientific, breaks=1:8)
   
   ## set the orig plot
   g.orig <- ggplot() + geom_point(data=bt[data.ix,], aes(x=dsam1, y=dsam2), size=SIZE) + theme_bw() + ggtitle(paste("Original data:", sum(data.ix), "events")) +
-    xlab("") + ylab("") + geom_rect(data=chrdf, aes(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax), fill='green', alpha=0.10, color='black')
+    xlab("") + ylab("") + geom_rect(data=chrdf, aes(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax), fill='green', alpha=0.10, color='black') + 
                                         #geom_rect(data=tt, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="purple", alpha=0.35, color='purple') + ## plot the bed regions
-                                        #theme(legend.position="none") + coord_cartesian(xlim=c(MIN,MAX), ylim=c(MIN,MAX))
+                                        theme(legend.position="none") + coord_cartesian(xlim=c(MIN,MAX), ylim=c(MIN,MAX))
   
   ## set the swap plot
-  g.swap <- ggplot() + geom_point(data=bt[tix,], aes(x=dsam1, y=dsam2), size=SIZE) + theme_bw() + ggtitle(paste("Swapped, at Temp:", temp, "Step:", steps)) +
-    xlab("") + ylab("") + geom_rect(data=chrdf, aes(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax), fill='green', alpha=0.15, color='black')
+  g.swap <- ggplot() + geom_point(data=bt[tix,], aes(x=dsam1, y=dsam2), size=SIZE) + theme_bw() + ggtitle(paste("Swapped, at Temp:", temp, "Step:", steps[x])) +
+    xlab("") + ylab("") + geom_rect(data=chrdf, aes(xmin=xmin,xmax=xmax,ymin=ymin,ymax=ymax), fill='green', alpha=0.15, color='black') + 
                                         #geom_rect(data=tt, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="purple", alpha=0.35, color='purple') + ## plot the bed regions
                                         #geom_rect(data=tt, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), fill="yellow", alpha=0.3, color='black') +
-                                        #theme(legend.position="none") + coord_cartesian(xlim=c(MIN,MAX), ylim=c(MIN,MAX))
+                                        coord_cartesian(xlim=c(MIN,MAX), ylim=c(MIN,MAX))
   
   ## set the accepted plot
                                         #df.a$type = "other";
@@ -267,13 +268,13 @@ afunc <- function(bt, steps, data.ix) {
   
   ## plot the non-binned size histogram
   if (any(bt$d > 0)) {
-    g.ohist <- ggplot(bt[tix & d > 0]) + geom_histogram(aes(x=log10(d)), fill='gray80', color='black') +
-      scale_x_continuous(name="Size (bp)", breaks=0:8, label=parse(text=paste("10", 0:8, sep="^"))) + theme_bw() +
-        ylab("Event count") + ggtitle("Original Histogram")
-    
-    g.thist <- ggplot(bt[data.ix & d > 0]) + geom_histogram(aes(x=log10(d)), fill='gray80', color='black') +
+    g.thist <- ggplot(bt[tix & d > 0]) + geom_histogram(aes(x=log10(d)), fill='gray80', color='black') +
       scale_x_continuous(name="Size (bp)", breaks=0:8, label=parse(text=paste("10", 0:8, sep="^"))) + theme_bw() +
         ylab("Event count") + ggtitle("Swapped Histogram")
+    
+    g.ohist <- ggplot(bt[data.ix & d > 0]) + geom_histogram(aes(x=log10(d)), fill='gray80', color='black') +
+      scale_x_continuous(name="Size (bp)", breaks=0:8, label=parse(text=paste("10", 0:8, sep="^"))) + theme_bw() +
+        ylab("Event count") + ggtitle("Original Histogram")
   }
   
                                         #secdf <- ecdf(bt$d[tix & bt$d >= 0])
@@ -289,6 +290,7 @@ afunc <- function(bt, steps, data.ix) {
     suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), arrangeGrob(g.ohist, g.thist, ncol=2), g.dhist, nrow=3, ncol=1, heights=c(1/2,1/4,1/4)))
   else
     suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), g.dhist, nrow=2, ncol=1, heights=c(1/2,1/2)))
+})
 }
 
 ## make the animation
@@ -297,10 +299,11 @@ steps <- c(rep(1,r),unique(bt$step), rep(unique(bt$step)[length(unique(bt$step))
 if (opt$firstandlast)
   steps = c(steps[1], steps[(length(steps))])
                                         #ppdf(print(afunc(bt, steps[1], data.ix)))
-pdf("swap.pdf")
-print(afunc(bt, steps[length(steps)], data.ix))
-dev.off()
-                                        #saveGIF(afunc(bt, steps, data.ix), movie.name=opt$output, interval=opt$interval, ani.width=opt$width, ani.height=opt$height, ani.dev='pdf')
+#pdf("swap.pdf")
+#print(afunc(bt, steps[length(steps)], data.ix))
+#dev.off()
+print(steps)
+saveGIF(afunc(bt, steps, data.ix), movie.name=paste0(aid, ".swap.gif"), interval=opt$interval, ani.width=opt$width, ani.height=opt$height, ani.dev='jpeg')
 
 #####
 if (FALSE)

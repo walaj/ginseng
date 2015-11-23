@@ -20,6 +20,9 @@ vector<Matrix*> all_mats;
 static pthread_mutex_t swap_lock;
 
 namespace opt {
+  
+  static std::vector<std::string> identifiers;
+  static std::string analysis_id = "no_id";
 
   static S num_steps = 10;
   static size_t verbose = 1;
@@ -54,26 +57,28 @@ enum {
   OPT_SIMULATE
 };
 
-static const char* shortopts = "S:hr:v:P:F:n:k:e:c:n:p:b:t:a:i:x:y:m:s:B:I";
+static const char* shortopts = "w:S:hr:v:P:F:n:k:e:c:n:p:b:t:a:i:x:y:m:s:B:IA:";
 static const struct option longopts[] = {
   { "help",               no_argument, NULL, 'h' },
   { "input-vcf-list",     required_argument, NULL, 'i' },
   { "store-matrices",     required_argument, NULL, 's' },
+  { "sub-id",             required_argument, NULL, 'w' },
   { "verbose",            required_argument, NULL, 'v' },
-  { "anim-step",          required_argument, NULL, 'a' },
-  { "simulate",          no_argument, NULL, OPT_SIMULATE },
+  { "anim-step",          required_argument, NULL, 'A' },
+  { "analysis-id",        required_argument, NULL, 'a' },
+  { "simulate",           no_argument, NULL, OPT_SIMULATE },
   { "num-steps",          required_argument, NULL, 'k' },
-  { "frac-inter",          required_argument, NULL, 'F' },
+  { "frac-inter",         required_argument, NULL, 'F' },
   { "num-matrices",       required_argument, NULL, 'n' },
-  { "inter-chr-only",        no_argument, NULL, 'I' },
+  { "inter-chr-only",     no_argument, NULL, 'I' },
   { "num-threads",        required_argument, NULL, 'p' },
-  { "power-law",        required_argument, NULL, 'P' },
-  { "seed",        required_argument, NULL, 'S' },
+  { "power-law",          required_argument, NULL, 'P' },
+  { "seed",               required_argument, NULL, 'S' },
   { "half-life",          required_argument, NULL, 't' },
   { "num-bins",           required_argument, NULL, 'b' },
   { "bed-list",           required_argument, NULL, 'B' },
-  { "num-events",           required_argument, NULL, 'e' },
-  { "bed-file-mask",           required_argument, NULL, 'm' },
+  { "num-events",         required_argument, NULL, 'e' },
+  { "bed-file-mask",      required_argument, NULL, 'm' },
   { NULL, 0, NULL, 0 }
 };
 
@@ -83,7 +88,9 @@ static const char *MATRIX_USAGE_MESSAGE =
 "\n"
 "  General options\n"
 "  -h, --help                           Display this help and exit\n"
+"  -a, --analysis-id                    Unique string ID to prepend to output files\n"
 "  -i, --input-vcf-list                 Txt file with list of VCF files\n"
+"  -w, --sub-id                         A string identifer for the VCF files list. If -w specified, line from file from -i must have one of the -w strings to continue.\n"
 "  -k, --num-steps                      Number of steps\n"
 "  -n, --num-matrices                   Number of matrices to produce\n"
 "  -b, --num-bins                       Number of histogram bins for binning length distribution\n"
@@ -122,10 +129,17 @@ int main(int argc, char** argv) {
     else if (opt::stored_matrices.length()) {
       cerr << "Stored matrix file " << opt::stored_matrices << endl;
     } 
-    cerr << "Matrices: " << SnowTools::AddCommas(opt::num_matrices) << "\tSteps: " << SnowTools::AddCommas(opt::num_steps) << "\tHistBins: " << opt::num_bins << endl;
+    cerr << "ID: " << opt::analysis_id << "Matrices: " << SnowTools::AddCommas(opt::num_matrices) << "\tSteps: " << SnowTools::AddCommas(opt::num_steps) << "\tHistBins: " << opt::num_bins << endl;
     cerr << "Temp 1/2 life: " << SnowTools::AddCommas(opt::half_life) << endl;
     cerr << "Animation:     " << (opt::anim_step > 0 ? SnowTools::AddCommas(opt::anim_step) : "OFF")  << endl;
     cerr << "BED list:      " << (opt::bed_list) << endl;
+
+    if (opt::identifiers.size()) {
+      std::cerr << "Identifiers to trim to" << std::endl;
+      for (auto& i : opt::identifiers)
+	std::cerr << "\t" << i;
+      std::cerr << std::endl;
+    }
     //cerr << "BED file mask: " << (opt::mask.length() ? opt::mask : "NONE") << endl;
 
     if (opt::mode == OPT_SIMULATE) {
@@ -166,7 +180,6 @@ int main(int argc, char** argv) {
 	    if (count == 1)
 	      bedid = val;
 	    else {
-	      //std::cerr << "...reading in " << val << std::endl;
 	      all_bed[bedid] = SnowTools::GRC();
 	      all_bed[bedid].regionFileToGRV(val);
 	      all_bed[bedid].createTreeMap();
@@ -193,11 +206,11 @@ int main(int argc, char** argv) {
 
   if (opt::input.length() && opt::mode != OPT_SIMULATE) {
     // read in events from a list of VCFs
-    m = new Matrix(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only);
+    m = new Matrix(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only, opt::identifiers, opt::analysis_id);
   } else if (opt::mode == OPT_SIMULATE) {
     // make a random matrix
     std::cerr << "...simulating matrix with seed " << opt::seed << std::endl;
-    m = new Matrix(opt::num_events, opt::num_bins, opt::num_steps, opt::power_law, opt::frac_inter);
+    m = new Matrix(opt::num_events, opt::num_bins, opt::num_steps, opt::power_law, opt::frac_inter, opt::analysis_id);
   } else if (opt::stored_matrices.length()) {
     std::cerr << "...reading stored matrices" << std::endl;
     readStoredMatrices(opt::stored_matrices);
@@ -263,26 +276,22 @@ int main(int argc, char** argv) {
       sitmo::prng_engine eng1;
       eng1.seed(1337);
 
-      size_t num_intra = frac_inter < 1 ? std::floor((double)opt::num_steps * ((double)1 - 0.8 * frac_inter)) : opt::num_steps;
+      size_t num_intra = frac_inter < 1 ? std::floor((double)opt::num_steps * ((double)1 - 0.5 * frac_inter)) : opt::num_steps;
       uint8_t * rand_chr = (uint8_t*) calloc(opt::num_steps, sizeof(uint8_t));
       std::cerr << "...fraction inter " << frac_inter << " -- number of swaps to make intra-chromosomal: " << SnowTools::AddCommas(num_intra) << std::endl;
 
       for (size_t i = 0; i < opt::num_steps; ++i) {
 	size_t rv = eng1() % m->m_intra;    
 	size_t running_count = 0;
-	int chr = 25; // start with intra
-	if (i < num_intra) 
+
+	int chr = 25; // start with inter
+	if (i > (opt::num_steps - num_intra)) 
 	  {
 	    for (size_t j = 0; j < 24; ++j) 
 	      {
 		size_t rc2 = running_count + m->m_vec[j].size();
 		if (rv >= running_count && rv <= rc2 && m->m_vec[j].size()) 
-		  {
 		    chr = j;
-		    if (chr > 25) {//debug 
-		      std::cerr << "error " << chr << std::endl; exit(1); }
-		    break;
-		  } 
 		running_count = rc2;
 	      }
 	  }
@@ -293,14 +302,14 @@ int main(int argc, char** argv) {
   } // done with check all_mats.size()
   // output the original matrix
   std::ofstream initial;
-  initial.open("original.csv");
+  initial.open(opt::analysis_id + ".original.csv");
 
 
   // output the size histograms
   std::ofstream initial_h;
-  initial_h.open("original.histogram.csv");
+  initial_h.open(opt::analysis_id + ".original.histogram.csv");
   std::ofstream initial_h_small;
-  initial_h_small.open("original.histogram.small.csv");
+  initial_h_small.open(opt::analysis_id + ".original.histogram.small.csv");
   m->toCSV(initial, initial_h, initial_h_small);
   initial.close();
   initial_h.close();
@@ -316,7 +325,7 @@ int main(int argc, char** argv) {
   }
 
   // set up the result files
-  std::ofstream results("results.csv");
+  std::ofstream results(opt::analysis_id + ".results.csv");
   // write the original overlaps
   std::unordered_map<std::string, OverlapResult> all_overlaps;
   std::unordered_map<std::string, bool> ovl_ovl_seen;
@@ -326,7 +335,7 @@ int main(int argc, char** argv) {
 	OverlapResult ovl = m->checkOverlaps(&i.second, &j.second);
 	std::string ovl_name = i.first + "," + j.first;
 	all_overlaps[ovl_name] = ovl;
-	std::cerr << " ORIGINAL OVERLAP for " << ovl_name << " is "  << ovl.first << " ORIGINAL NO OVERLAP " << ovl.second << std::endl;      
+	//std::cerr << " ORIGINAL OVERLAP for " << ovl_name << " is "  << ovl.first << " ORIGINAL NO OVERLAP " << ovl.second << std::endl;      
 	results << ovl_name << "," << ovl.first << "," << ovl.second << ",-1" << std::endl; 
 	if (i.first==j.first)
 	  ovl_ovl_seen[i.first] = true;
@@ -383,7 +392,7 @@ int main(int argc, char** argv) {
   // set the output file
   ogzstream * oz_matrix = nullptr;
   if (all_mats.size() == 0) {
-    std::string namr = "all.matrices.csv.gz";
+    std::string namr = opt::analysis_id + ".all.matrices.csv.gz";
     oz_matrix = new ogzstream(namr.c_str(), std::ios::out);
   }
 
@@ -412,7 +421,7 @@ int main(int argc, char** argv) {
   }
 
   // write the summed results
-  s_results->toSimpleCSV("summed_out.csv");
+  //s_results->toSimpleCSV("summed_out.csv");
   
   // free the temps and probabilities
   //free(temps);
@@ -462,8 +471,14 @@ void parseMatrixOptions(int argc, char** argv) {
       case 'x': arg >> opt::bedA; break;
       case 'y': arg >> opt::bedB; break;
 	//case 'c': arg >> opt::nc; break;
-      case 'a': arg >> opt::anim_step; break;
+      case 'A': arg >> opt::anim_step; break;
+      case 'a': arg >> opt::analysis_id; break;
       case 'e': arg >> opt::num_events; break;
+      case 'w': 
+	tmp = std::string();
+	arg >> tmp;
+	opt::identifiers.push_back(tmp);
+	break;
       case 'F': arg >> opt::frac_inter; break;
       case 'S': arg >> opt::seed; break;
       case 'n': arg >> opt::num_matrices; break;
