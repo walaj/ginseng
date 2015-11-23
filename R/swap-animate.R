@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-## height of the "real" bar in the histograms. Higher number for higher num matrices
+### height of the "real" bar in the histograms. Higher number for higher num matrices
 YHEIGHT = 600
 
 ## check for ImageMagick
