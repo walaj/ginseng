@@ -35,6 +35,21 @@
 
 static const size_t INTER = 25;
 
+int __countLines(const std::string& file) {
+
+  int number_of_lines = 0;
+  std::string line;
+  std::ifstream myfile(file);
+
+  while (std::getline(myfile, line)) {
+    if (line.find("#") == std::string::npos && line.find("vcf") != std::string::npos)
+      ++number_of_lines;
+  }
+  
+  return number_of_lines;
+
+}
+
 int drawFromPower(double x0, double x1, double power) {
 
   assert(power != -1);
@@ -180,7 +195,7 @@ Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_in
   m_orig = this;
 }
 
-void Matrix::add(const Matrix& m) {
+void Matrix::add() { //const Matrix& m) {
 
   std::set<std::string> hash;
 
@@ -616,7 +631,11 @@ int Matrix::energyShift(S odist1, S odist2, S pdist1, S pdist2) {
 
 }
 */
-Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid, int tmin_size, int tmax_size, SnowTools::GRC& black, bool intra_only) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid), min_size(tmin_size), max_size(tmax_size), m_intra_only(intra_only) {
+
+Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid, int tmin_size, int tmax_size, SnowTools::GRC& black, bool intra_only) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid), m_intra_only(intra_only) {
+
+  min_size = tmin_size >= 0 ? tmin_size : 0;
+  max_size = tmax_size >= 0 ? tmax_size : 0;
 
   this->inter_only = inter_only;
 
@@ -630,7 +649,7 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
   }
 
   // get count of files
-  size_t num_files = SnowTools::countLines(file_list, "#", "vcf");
+  size_t num_files = __countLines(file_list);
 
   // counter for number of masked events
   size_t masked = 0;
@@ -672,7 +691,7 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
     igzstream this_file(file.c_str());
     std::string event_line;
     
-    size_t num_events_in_file = SnowTools::countLines(file,"#");
+    size_t num_events_in_file = __countLines(file);
     if (num_events_in_file < SANGER_PER_FILE_LIMIT) // block if too many lines
       while (std::getline(this_file, event_line)) {
 	if (event_line.length() > 0 && event_line.at(0) != '#') {
@@ -737,8 +756,8 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	    }
 	    
 	    // sanger conditional on distance
-	    //bool blacklist_pass = !black.findOverlapping(mv.r) && !black.findOverlapping(mv.c);
-	    if (mv.r.chr >= 0 && mv.c.chr >= 0 && (mv.r.chr != mv.c.chr || (mv.distance() >= min_size && mv.distance() <= max_size)) && keep && (mv.r < mv.c) && (!inter_only || mv.r.chr != mv.c.chr) && (!m_intra_only || (m_intra_only && mv.r.chr == mv.c.chr))) {
+	    bool blacklist_pass = !black.findOverlapping(mv.r) && !black.findOverlapping(mv.c);
+	    if (blacklist_pass && mv.r.chr >= 0 && mv.c.chr >= 0 && (mv.r.chr != mv.c.chr || (mv.distance() >= (int)min_size && mv.distance() <= (int)max_size)) && keep && (mv.r < mv.c) && (!inter_only || mv.r.chr != mv.c.chr) && (!m_intra_only || (m_intra_only && mv.r.chr == mv.c.chr))) {
 	      
 	      // add the event
 	      addMatrixValue(mv);
@@ -1070,7 +1089,7 @@ OverlapResult Matrix::checkIntraUnitOverlaps(SnowTools::GRC * grvA) {
   // loop through bed track regions
   for (size_t i =0; i < sub1.size(); ++i) {
     std::unordered_map<size_t, size_t>::const_iterator tt = sub2_to_que2.find(grc1.at(sub1[i]).id);
-    if (tt != sub2_to_que2.end() && tt->second == que1[i]) { // q1 (bed region for Row) and q2 (bed region for Column) must be equal for a given subject (event)
+    if (tt != sub2_to_que2.end() && (int)tt->second == que1[i]) { // q1 (bed region for Row) and q2 (bed region for Column) must be equal for a given subject (event)
       ++overlap;
       assert(!inter_only); // impossible for intra-unit overlaps if inter-only
     } else {

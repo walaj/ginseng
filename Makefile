@@ -33,8 +33,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = .
 DIST_COMMON = $(am__configure_deps) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(top_srcdir)/configure depcomp \
-	install-sh missing
+	$(srcdir)/Makefile.in \
+	$(top_srcdir)/SnowTools/htslib/Makefile.in \
+	$(top_srcdir)/configure depcomp install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -42,7 +43,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = SnowTools/htslib/Makefile
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
 DIST_SOURCES =
@@ -107,7 +108,7 @@ AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -Ofast
-CPPFLAGS = 
+CPPFLAGS =  -I/xchip/gistic/Jeremiah/software/boost_1_61_0
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
@@ -158,6 +159,7 @@ am__quote =
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
+boost_lib = /xchip/gistic/Jeremiah/software/boost_1_61_0/stage/lib
 build_alias = 
 builddir = .
 datadir = ${datarootdir}
@@ -189,7 +191,7 @@ target_alias =
 top_build_prefix = 
 top_builddir = .
 top_srcdir = .
-SUBDIRS = SnowTools/modular-boost SnowTools/bwa SnowTools/htslib SnowTools/src src
+SUBDIRS = SnowTools/htslib SnowTools/src src
 all: all-recursive
 
 .SUFFIXES:
@@ -227,6 +229,8 @@ $(top_srcdir)/configure: # $(am__configure_deps)
 $(ACLOCAL_M4): # $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
+SnowTools/htslib/Makefile: $(top_builddir)/config.status $(top_srcdir)/SnowTools/htslib/Makefile.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.

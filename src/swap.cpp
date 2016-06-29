@@ -606,7 +606,7 @@ void readStoredMatrices(const std::string& file)
 
   std::string line;
   int curr_id = -1, id = 0;
-  Matrix * mym;
+  Matrix * mym = nullptr;
   while(std::getline(infile, line, '\n')) 
     {
       std::istringstream iss(line);

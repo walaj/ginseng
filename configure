@@ -642,6 +642,7 @@ am__EXEEXT_TRUE
 LTLIBOBJS
 LIBOBJS
 AM_CXXFLAGS
+boost_lib
 EGREP
 GREP
 CXXCPP
@@ -736,6 +737,7 @@ ac_user_opts='
 enable_option_checking
 enable_maintainer_mode
 enable_dependency_tracking
+with_boost
 enable_development
 '
       ac_precious_vars='build_alias
@@ -1382,6 +1384,11 @@ Optional Features:
   --enable-dependency-tracking   do not reject slow dependency extractors
   --enable-development    Turn on development options, like failing
                           compilation on warnings
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-boost=PATH       specify directory containing the boost library)
 
 Some influential environment variables:
   CXX         C++ compiler command
@@ -5143,6 +5150,52 @@ _ACEOF
 fi
 
 
+
+
+# Check whether --with-boost was given.
+if test "${with_boost+set}" = set; then
+  withval=$with_boost;
+fi
+
+if test "$with_boost" -a -d "$with_boost"; then
+    boost_include="-I$with_boost"
+    as_ac_File=`$as_echo "ac_cv_file_"$with_boost/stage/lib"" | $as_tr_sh`
+{ $as_echo "$as_me:$LINENO: checking for \"$with_boost/stage/lib\"" >&5
+$as_echo_n "checking for \"$with_boost/stage/lib\"... " >&6; }
+if { as_var=$as_ac_File; eval "test \"\${$as_var+set}\" = set"; }; then
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  { { $as_echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+$as_echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r ""$with_boost/stage/lib""; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+ac_res=`eval 'as_val=${'$as_ac_File'}
+		 $as_echo "$as_val"'`
+	       { $as_echo "$as_me:$LINENO: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+as_val=`eval 'as_val=${'$as_ac_File'}
+		 $as_echo "$as_val"'`
+   if test "x$as_val" = x""yes; then
+  STAGE_PATH=1
+else
+  STAGE_PATH=0
+fi
+
+    if test ${STAGE_PATH} = 1; then
+        boost_lib="$with_boost/stage/lib"
+    else
+        boost_lib="$with_boost/lib"
+    fi
+    boost_lib_flag="-L/$boost_lib"
+
+fi
+
 # Only fail on warnings when the --enable-development flag is passed into configure
 # Check whether --enable-development was given.
 if test "${enable_development+set}" = set; then
@@ -5160,19 +5213,15 @@ CXXFLAGS="-O3"
 
 CFLAGS="-Ofast"
 
-CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$CPPFLAGS $boost_include"
 
 LDFLAGS="$LDFLAGS"
 
 
-# We always need to specify to link in bamtools
 LIBS="$LIBS"
 
 
-# Make sure the bamtools headers can be found
-##AC_CHECK_HEADERS([plinkio/bed.h],,[AC_MSG_ERROR([The plinkio library must be installed (https://github.com/mfranberg/libplinkio). You can specify its path with the --with-plinkio=PATH option])])
-
-ac_config_files="$ac_config_files Makefile SnowTools/src/Makefile src/Makefile"
+ac_config_files="$ac_config_files Makefile SnowTools/htslib/Makefile SnowTools/src/Makefile src/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -5833,6 +5882,7 @@ do
   case $ac_config_target in
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "SnowTools/htslib/Makefile") CONFIG_FILES="$CONFIG_FILES SnowTools/htslib/Makefile" ;;
     "SnowTools/src/Makefile") CONFIG_FILES="$CONFIG_FILES SnowTools/src/Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
 

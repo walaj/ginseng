@@ -113,7 +113,7 @@ class MatrixValue {
 	return INTERCHR;
 #else
 
-      int dist = r.distance(c);
+      int dist = r.distanceBetweenStarts(c);
       if (dist < 0) {
 	//assert(r.chr != c.chr);
 	return INTERCHR;
@@ -197,7 +197,7 @@ class Matrix {
     //free(rand_tval); 
   }
   
-  void add(const Matrix& m);
+  void add(); //const Matrix& m);
 
   /** Add a new MatrixValue to this Matrix
    */
@@ -320,8 +320,10 @@ class Matrix {
   uint16_t** probs; // an array holding the arrays of probabilites for each shift 
   uint8_t* bin_table;
 
+
+
   bool inter_only = false;
-  bool m_intra_only = false;
+
   
   size_t m_id = 0;
 
@@ -360,13 +362,15 @@ class Matrix {
 
     std::string analysis_id;
 
-    int min_size = 1000;
-    int max_size = 250e6;
+    size_t min_size = 1000;
+    size_t max_size = 250e6;
 
     // map to store sparse matrix entries, per chrom
     std::vector<MVec> m_vec;
 
     SnowTools::Histogram m_hist_smallbins;
+
+    bool m_intra_only = false;
     
 };
 

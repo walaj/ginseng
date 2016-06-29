@@ -46,9 +46,7 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_swap_OBJECTS = swap-swap.$(OBJEXT) swap-Matrix.$(OBJEXT)
 swap_OBJECTS = $(am_swap_OBJECTS)
-swap_DEPENDENCIES = $(top_builddir)/SnowTools/bwa/libbwa.a \
-	$(top_builddir)/SnowTools/src/libsnowtools.a \
-	$(top_builddir)/SnowTools/modular-boost/stage/lib/libboost_regex.a \
+swap_DEPENDENCIES = $(top_builddir)/SnowTools/src/libsnowtools.a \
 	$(top_builddir)/SnowTools/htslib/libhts.a
 swap_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(swap_LDFLAGS) \
 	$(LDFLAGS) -o $@
@@ -80,7 +78,7 @@ AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = -Ofast
-CPPFLAGS = 
+CPPFLAGS =  -I/xchip/gistic/Jeremiah/software/boost_1_61_0
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
@@ -131,6 +129,7 @@ am__quote =
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
+boost_lib = /xchip/gistic/Jeremiah/software/boost_1_61_0/stage/lib
 build_alias = 
 builddir = .
 datadir = ${datarootdir}
@@ -165,15 +164,9 @@ top_srcdir = ..
 swap_CPPFLAGS = \
 	-I$(top_srcdir)/SnowTools/src \
 	-I$(top_srcdir)/SnowTools/htslib \
-	-I$(top_srcdir)/SnowTools/multifast-v1.4.2 \
-	-I$(top_srcdir)/SnowTools/modular-boost
+	-I$(top_srcdir)/SnowTools/multifast-v1.4.2 
 
-swap_LDADD = \
-	$(top_builddir)/SnowTools/bwa/libbwa.a \
-	$(top_builddir)/SnowTools/src/libsnowtools.a \
-	$(top_builddir)/SnowTools/modular-boost/stage/lib/libboost_regex.a \
-	$(top_builddir)/SnowTools/htslib/libhts.a
-
+swap_LDADD = $(top_builddir)/SnowTools/src/libsnowtools.a $(top_builddir)/SnowTools/htslib/libhts.a
 swap_LDFLAGS = -pthread -std=c++11
 swap_SOURCES = swap.cpp Matrix.cpp prng_engine.hpp
 all: all-am
