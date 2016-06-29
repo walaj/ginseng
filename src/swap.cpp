@@ -19,10 +19,15 @@ using namespace std;
 vector<Matrix*> all_mats;
 static pthread_mutex_t swap_lock;
 
+static SnowTools::GRC blacklist;
+
 namespace opt {
   
   static std::vector<std::string> identifiers;
   static std::string analysis_id = "no_id";
+
+  static int min_rar_size = 1000;
+  static int max_rar_size = 250e6;
 
   static S num_steps = 10;
   static size_t verbose = 1;
@@ -33,6 +38,9 @@ namespace opt {
   static size_t anim_step = 0;
   static string input = "";
   static string stored_matrices = "";
+
+  static std::string blacklist_file;
+  static bool intra_only = false;
 
   static string bed_list = "";
 
@@ -54,10 +62,13 @@ namespace opt {
 };
 
 enum {
-  OPT_SIMULATE
+  OPT_SIMULATE,
+  OPT_MINSIZE,
+  OPT_MAXSIZE,
+  OPT_BLACKLIST
 };
 
-static const char* shortopts = "w:S:hr:v:P:F:n:k:e:c:n:p:b:t:a:i:x:y:m:s:B:IA:";
+static const char* shortopts = "w:S:hr:v:P:F:n:k:e:c:n:p:b:t:a:i:x:y:m:s:B:IA:R";
 static const struct option longopts[] = {
   { "help",               no_argument, NULL, 'h' },
   { "input-vcf-list",     required_argument, NULL, 'i' },
@@ -70,7 +81,10 @@ static const struct option longopts[] = {
   { "num-steps",          required_argument, NULL, 'k' },
   { "frac-inter",         required_argument, NULL, 'F' },
   { "num-matrices",       required_argument, NULL, 'n' },
+  { "min-span",           required_argument, NULL, OPT_MINSIZE },
+  { "max-span",           required_argument, NULL, OPT_MAXSIZE },
   { "inter-chr-only",     no_argument, NULL, 'I' },
+  { "intra-chr-only",     no_argument, NULL, 'R' },
   { "num-threads",        required_argument, NULL, 'p' },
   { "power-law",          required_argument, NULL, 'P' },
   { "seed",               required_argument, NULL, 'S' },
@@ -79,6 +93,7 @@ static const struct option longopts[] = {
   { "bed-list",           required_argument, NULL, 'B' },
   { "num-events",         required_argument, NULL, 'e' },
   { "bed-file-mask",      required_argument, NULL, 'm' },
+  { "blacklist",             required_argument, NULL, OPT_BLACKLIST },
   { NULL, 0, NULL, 0 }
 };
 
@@ -99,12 +114,24 @@ static const char *MATRIX_USAGE_MESSAGE =
 "  -m, --event-mask                     BED file to mask events from. If a breakpoint falls in this mask, it is not included.\n"
 "  -s, --stored-matrices                Load matrices stored on disk and test hypotheses\n"
 "  -I, --inter-chr-only                 Run only inter-chromosomal events. Much much faster, but lower power.\n" 
+"      --min-span                       Minimum rearrangement span to accept [1000]\n" 
+"      --max-span                       Maximum rearrangement span to accept [250e6]\n" 
+"  -I, --inter-chr-only                 Run only inter-chromosomal events. Much much faster, but lower power.\n" 
+"  -B, --blacklist                      BED-file with blacklisted regions to not extract variants reads from.\n"
 "  Simulation options (--simulate)\n"
 "  -e, --num-events                     Number of events to simulate.\n" 
 "  -P, --power-law                      Power law parameter from which to draw lengths from (1^(-P)). Default 1.0\n" 
 "  -F, --frac-inter                     Fraction of events to be inter-chromosomal. Default 0.2\n" 
 "  -S, --seed                           Seed for the RNG. Default 42\n" 
 "\n";
+
+
+bool __header_has_chr_prefix(bam_hdr_t * h) {
+  for (int i = 0; i < h->n_targets; ++i) 
+    if (h->target_name[i] && std::string(h->target_name[i]).find("chr") != std::string::npos) 
+      return true;
+  return false;
+}
 
 int main(int argc, char** argv) {
 
@@ -154,8 +181,22 @@ int main(int argc, char** argv) {
 
     if (opt::inter_only)
       std::cerr << "--------------------------------------------\n" << 
-	"        RUNNING AS INTER CHROMOSOMAL ONLY     " << std::endl 
+	           "      RUNNING AS INTER CHROMOSOMAL ONLY     " << std::endl 
 		<< "--------------------------------------------" << std::endl;
+    if (opt::intra_only)
+      std::cerr << "--------------------------------------------\n" << 
+	           "      RUNNING AS INTRA CHROMOSOMAL ONLY     " << std::endl 
+		<< "--------------------------------------------" << std::endl;
+    else 
+      std::cerr << " Rearrangement size bounds: [" << SnowTools::AddCommas(opt::min_rar_size) << " - " << SnowTools::AddCommas(opt::max_rar_size) << "]" << std::endl;
+      
+  }
+
+  //blacklist.add(SnowTools::GenomicRegion(1,33139671,33143258)); // really nasty region
+  if (!opt::blacklist_file.empty()) {
+    blacklist.regionFileToGRV(opt::blacklist_file, 0, nullptr, false);
+    blacklist.createTreeMap();
+    std::cerr << "...read in blacklist " << blacklist.size() << std::endl;
   }
 
   std::unordered_map<string, SnowTools::GRC> all_bed;
@@ -204,9 +245,12 @@ int main(int argc, char** argv) {
 
   std::srand(opt::seed);
 
-  if (opt::input.length() && opt::mode != OPT_SIMULATE) {
+  if (opt::input.length() && opt::input.find("csv") == std::string::npos && opt::mode != OPT_SIMULATE) {
     // read in events from a list of VCFs
-    m = new Matrix(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only, opt::identifiers, opt::analysis_id);
+    m = new Matrix(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only, opt::identifiers, opt::analysis_id, opt::min_rar_size, opt::max_rar_size, blacklist, opt::intra_only);
+    //} else if (opt::input.length() && opt::mode != OPT_SIMULATE && opt::input.find(".csv") != std::string::npos) {  
+    // read in events from a csv directly
+    //m = new Matrix(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only, opt::identifiers, opt::analysis_id, opt::min_rar_size, opt::max_rar_size, true);
   } else if (opt::mode == OPT_SIMULATE) {
     // make a random matrix
     std::cerr << "...simulating matrix with seed " << opt::seed << std::endl;
@@ -233,17 +277,25 @@ int main(int argc, char** argv) {
     //double * temps = (double*) calloc(opt::num_steps, sizeof(double));
     if (frac_inter < 1 && opt::half_life && (double)opt::half_life/double(opt::num_steps) < 1) { // if half_life is zero, no temperature decay
 
-      for (size_t i = 0; i < opt::num_steps; ++i) {
-	double frac = (double)i/(double)opt::half_life;
-	//temps[i] = TMAX*pow(2,-frac);
-	double tempr = TMAX*pow(2,-frac);
-	probs[0][i] = (uint16_t)std::min(std::floor(exp(-1/tempr)*TRAND), (double)TRAND);
-	probs[1][i] = (uint16_t)std::min(std::floor(exp(-2/tempr)*TRAND), (double)TRAND);
-	probs[2][i] = (uint16_t)std::min(std::floor(exp(-3/tempr)*TRAND), (double)TRAND);
-	probs[3][i] = (uint16_t)std::min(std::floor(exp(-4/tempr)*TRAND), (double)TRAND);
-	if (i % 5000000 == 0)
-	  std::cerr << "P(least-non-optimal) " << probs[0][i] << " P(most-non-optimal) " << probs[3][i] << " Temp " << tempr << " Step " << SnowTools::AddCommas<size_t>(i) << std::endl;
-      }
+     for (size_t i = 0; i < opt::num_steps; ++i) {
+       
+       double frac = (double)i/(double)opt::half_life;
+       double tempr = TMAX*pow(2,-frac);
+       // if too cold, then skip rest of compute
+       if (tempr < 1) {
+	 std::cerr << "...filling cold (0 prob) to end of " << SnowTools::AddCommas(opt::num_steps) << std::endl;
+	 for (size_t j = i; j < opt::num_steps; ++j) {
+	   probs[0][j] = 0; probs[1][j] = 0; probs[2][j] = 0; probs[3][j] = 0;
+	 }
+	 break;
+	 }
+       probs[0][i] = (uint16_t)std::min(std::floor(exp(-1/tempr)*TRAND), (double)TRAND);
+       probs[1][i] = (uint16_t)std::min(std::floor(exp(-2/tempr)*TRAND), (double)TRAND);
+       probs[2][i] = (uint16_t)std::min(std::floor(exp(-3/tempr)*TRAND), (double)TRAND);
+       probs[3][i] = (uint16_t)std::min(std::floor(exp(-4/tempr)*TRAND), (double)TRAND);
+       if (i % 5000000 == 0)
+	 std::cerr << "P(least-non-optimal) " << probs[0][i] << " P(most-non-optimal) " << probs[3][i] << " Temp " << tempr << " Step " << SnowTools::AddCommas<size_t>(i) << std::endl;
+     }
       // half life is huge, so we don't want to decay at all (permanently hot)
     } else if ((double)opt::half_life/double(opt::num_steps) >= 1) { 
       for (size_t i = 0; i < opt::num_steps; ++i) {
@@ -285,7 +337,7 @@ int main(int argc, char** argv) {
 	size_t running_count = 0;
 
 	int chr = 25; // start with inter
-	if (i > (opt::num_steps - num_intra)) 
+	if (i > (opt::num_steps - num_intra) || opt::intra_only) 
 	  {
 	    for (size_t j = 0; j < 24; ++j) 
 	      {
@@ -317,15 +369,17 @@ int main(int argc, char** argv) {
 
 
   if (opt::verbose && opt::mode != OPT_SIMULATE) {
-    cerr << "...done importing" << endl;
+    std::cerr << "...done importing";
 #ifndef __APPLE__
-    SnowTools::displayRuntime(start);
-    cerr << endl;
+    std::cerr << "  " << SnowTools::displayRuntime(start) << std::endl;;
+#else
+    std::cerr << endl;
 #endif
   }
 
   // set up the result files
   std::ofstream results(opt::analysis_id + ".results.csv");
+  std::ofstream results2(opt::analysis_id + ".results.intra.csv");
   // write the original overlaps
   std::unordered_map<std::string, OverlapResult> all_overlaps;
   std::unordered_map<std::string, bool> ovl_ovl_seen;
@@ -333,6 +387,7 @@ int main(int argc, char** argv) {
     for (auto& j : all_bed) {
       if (i.first < j.first || (!ovl_ovl_seen.count(i.first) && i.first==j.first) ) { // don't need to do each one twice
 	OverlapResult ovl = m->checkOverlaps(&i.second, &j.second);
+
 	std::string ovl_name = i.first + "," + j.first;
 	all_overlaps[ovl_name] = ovl;
 	//std::cerr << " ORIGINAL OVERLAP for " << ovl_name << " is "  << ovl.first << " ORIGINAL NO OVERLAP " << ovl.second << std::endl;      
@@ -340,6 +395,22 @@ int main(int argc, char** argv) {
 	if (i.first==j.first)
 	  ovl_ovl_seen[i.first] = true;
       }
+    }
+  }	
+
+  // check intra unit overlaps
+  for (auto& i : all_bed) {
+    if (do_intra_overlap(i.first)) {
+      std::cerr << "...checking intra overlaps for " << i.first;
+      OverlapResult ovl = m->checkIntraUnitOverlaps(&i.second);
+      results2 << i.first << "," << ovl.first << "," << ovl.second << ",-1" << std::endl; 
+
+#ifndef __APPLE__
+      std::cerr << "  " << SnowTools::displayRuntime(start) << std::endl;;
+#else
+      std::cerr << endl;
+#endif
+
     }
   }
   
@@ -385,6 +456,15 @@ int main(int argc, char** argv) {
 	  }
 	}
       }
+
+      // check intra unit overlaps
+      for (auto& i : all_bed) {
+	if (do_intra_overlap(i.first)) {
+	  OverlapResult ovl = m->checkIntraUnitOverlaps(&i.second);
+	  results2 << i.first << "," << ovl.first << "," << ovl.second << mmm->m_id << std::endl; 
+	}
+      }
+
       
     }
   }
@@ -400,8 +480,10 @@ int main(int argc, char** argv) {
   Matrix * s_results = new Matrix();
   
   vector<SwapWorkItem*> tmp_queue;
+  m->grc1.clear();
+  m->grc2.clear();
   for (S i = 0; i < opt::num_matrices; ++i) {
-    SwapWorkItem * item = new SwapWorkItem(m, &all_mats, &swap_lock, i, &all_bed, &results, oz_matrix, s_results);
+    SwapWorkItem * item = new SwapWorkItem(m, &all_mats, &swap_lock, i, &all_bed, &results, &results2, oz_matrix, s_results);
     tmp_queue.push_back(item);
   }
 
@@ -461,8 +543,12 @@ void parseMatrixOptions(int argc, char** argv) {
     switch (c) {
       case 'h': die = true; break;
     case 'I': opt::inter_only = true; break;
+    case 'R': opt::intra_only = true; break;
       case 'k': arg >> opt::num_steps; break;
+      case OPT_BLACKLIST: arg >> opt::blacklist_file; break;
       case OPT_SIMULATE: opt::mode = OPT_SIMULATE; break;
+      case OPT_MINSIZE: arg >> opt::min_rar_size; break;
+      case OPT_MAXSIZE: arg >> opt::max_rar_size; break;
       case 'B': arg >> opt::bed_list; break;
       case 'v': arg >> opt::verbose; break;
       case 's': arg >> opt::stored_matrices; break;

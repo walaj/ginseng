@@ -21,7 +21,7 @@
 #define MAX_RAR_SIZE 200e6
 
 // min distance to be valid. Gets rid of Sanger high FP rate at small events
-#define SANGER_DIST_LIM 2000
+#define SANGER_DIST_LIM 1e6
 // dont include VCFs files with more than this many non-comment lines
 #define SANGER_PER_FILE_LIMIT 5000
 
@@ -169,8 +169,11 @@ Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_in
   // scramble to make even around the diagonal
   for (auto& i : m_vec) 
     for (auto& j : i) 
-      if (rand() % 2)
+      if (rand() % 2) {
+	int idd = j.id;
 	j = MatrixValue(j.c, j.r);
+	j.id = idd;
+      }
 
   fillQuantileHistograms(m_num_bins);
 
@@ -305,6 +308,16 @@ void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm)
 
 void Matrix::doSwap() {
 
+#ifdef ANIMATION
+  // output the animation
+  if (m_anim_step > 0 && m_id == 0)
+    if ( (m_mcmc.swap_tried % m_anim_step) == 0 || m_mcmc.swap_tried == 0) {
+      std::cerr << "...writing animation for step " << m_mcmc.swap_tried << " matrix id " << id << std::endl;
+      this->toCSV(of_anim, of_anim_hist, of_anim_hist_small, m_mcmc.swap_tried);
+    }
+#endif
+
+
   // new and faster
   size_t chr = INTER; 
 
@@ -316,7 +329,6 @@ void Matrix::doSwap() {
   MatrixValue mo1 = m_vec[chr][i1];
   MatrixValue mo2 = m_vec[chr][i2];
 
-  //std::cerr << "chr " << chr << std::endl;
   // make the swapped vals
   MatrixValue ms1, ms2;
 #ifdef MV_LITE
@@ -337,11 +349,12 @@ void Matrix::doSwap() {
     return;
   }
 
-  bool valid = (d3 >= SANGER_DIST_LIM && d4 >= SANGER_DIST_LIM);
+  bool valid = chr == INTER || (d3 >= min_size && d4 >= min_size && d3 <= max_size && d4 <= max_size);  
   if (!valid) {
     ++m_mcmc.swap_tried;
     return;
   }
+
   S d1 = mo1.distance();
   S d2 = mo2.distance();
 
@@ -359,8 +372,8 @@ void Matrix::doSwap() {
       valid = true;
   }
 
-  ++m_mcmc.swap_tried;  
-
+  ++m_mcmc.swap_tried; 
+  
   if (valid) {
     
     //assert(temps[m_mcmc.swap_tried-1] >= 0.001 || es <= 0);
@@ -389,14 +402,6 @@ void Matrix::doSwap() {
     m_vec[chr][i2] = ms2;
   }
   
-#ifdef ANIMATION
-  // output the animation
-  if (m_anim_step > 0 && m_id == 0)
-    if ( (m_mcmc.swap_tried % m_anim_step) == 0 || m_mcmc.swap_tried == 1) {
-      std::cerr << "...writing animation for step " << m_mcmc.swap_tried << " matrix id " << id << std::endl;
-      this->toCSV(of_anim, of_anim_hist, of_anim_hist_small, m_mcmc.swap_tried);
-    }
-#endif
 }
 
 
@@ -502,7 +507,116 @@ int Matrix::energyShift(S odist1, S odist2, S pdist1, S pdist2) {
 
 }
 
-Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid) {
+/*Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid, int tmin_size, int tmax_size) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid), min_size(tmin_size), max_size(tmax_size) {
+
+  this->inter_only = inter_only;
+
+  //open the file
+  igzstream inFile(file_list.c_str());
+  if (!inFile) {
+    std::cerr << "Can't read file " << file_list << " for parsing VCF" << std::endl;
+    return;
+  }
+
+  // get count of events
+  size_t num_events = SnowTools::countLines(file_list, "#", "vcf");
+
+  // initialize the m_vec
+  __initialize_mvec();
+
+  // loop through the events and add them
+  std::string fileline, file;
+  size_t file_counter = 0;
+  while (std::getline(inFile, fileline)) {
+
+      while (std::getline(this_file, event_line)) {
+	if (event_line.length() > 0 && event_line.at(0) != '#') {
+	  size_t count = 0;
+	  std::string chr1 = "-1", pos1 = "-1", chr2 = "-1", pos2 = "-1";
+	  std::istringstream iss(event_line);
+	  
+	  // remove non human
+	  if (event_line.find("GL00") != std::string::npos || event_line.find("gi|") != std::string::npos)
+	    continue;
+
+	  // regex to get mate information
+	  while (std::getline(iss, val, '\t')) {
+	    switch(++count) {
+	    case 1: chr1 = val; break;
+	    case 2: pos1 = val; break;
+	    case 5: 
+	      std::regex reg(".*?(\\]|\\[)([0-9A-Z]+):([0-9]+).*?$");	  
+	      std::smatch match;
+	      if (std::regex_search(val, match, reg) ) {
+		chr2 = match[2];
+		pos2 = match[3];
+	      } else {
+		std::cerr << "No match on line "  << val << std::endl;
+	      }
+	      break;
+	    } // end switch
+	  } // end intra-line loop
+	  
+	  // check that we have the data
+	  if (chr1 == "-1" || pos1 == "-1" || chr2 == "-1" || pos2 == "-1") {
+	    std::cerr << "Failed to parse VCF on line " << event_line << std::endl;
+	    continue;
+	  }
+	  
+	  // convert to numbers
+	  try { 
+	    
+	    MatrixValue mv(chr1, pos1, chr2, pos2);
+	    mv.id = good_files;// give unique id
+	    
+	    // check the mask
+	    bool keep = true;
+	    if (mk.size()) {
+	      size_t ovl = 0;
+#ifdef MV_LITE
+	      ovl += mk.findOverlapping(GenomicRegion(mv.r_chr, mv.r, mv.r));	      
+#else
+	      ovl += mk.findOverlapping(mv.r);
+#endif
+	      if (!ovl) {
+#ifdef MV_LITE
+		ovl += mk.findOverlapping(GenomicRegion(mv.c_chr, mv.c, mv.c));	      
+#else
+		ovl += mk.findOverlapping(mv.c);
+#endif
+	      }
+	      if (ovl) {
+		keep = false;
+		++masked;
+	      }
+	    }
+	    
+	    // sanger conditional on distance
+	    if ( mv.r.chr >= 0 && mv.c.chr >= 0 && (mv.r.chr != mv.c.chr || (mv.distance() >= min_size && mv.distance() <= max_size)) && keep && (mv.r < mv.c) && (!inter_only || mv.r.chr != mv.c.chr)) {
+	      
+	      // add the event
+	      addMatrixValue(mv);
+	      
+	      // increment the event counter
+	      ++new_events;
+	    } 
+
+	  } catch(...) {
+	    std::cerr << "********************************" << std::endl;
+	    std::cerr << "********************************" << std::endl;
+	    std::cerr << "Error converting VCF line from std::string to number. Line " << event_line << std::endl;
+	    std::cerr << "chr1 " << chr1 << " chr2 " << chr2 << std::endl;
+	    std::cerr << "********************************" << std::endl;
+	    std::cerr << "********************************" << std::endl;
+	  }
+	} // end ## conditional
+
+
+  }
+
+}
+*/
+Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid, int tmin_size, int tmax_size, SnowTools::GRC& black, bool intra_only) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid), min_size(tmin_size), max_size(tmax_size), m_intra_only(intra_only) {
 
   this->inter_only = inter_only;
 
@@ -589,8 +703,10 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	  } // end intra-line loop
 	  
 	  // check that we have the data
-	  if (chr1 == "-1" || pos1 == "-1" || chr2 == "-1" || pos2 == "-1")
+	  if (chr1 == "-1" || pos1 == "-1" || chr2 == "-1" || pos2 == "-1") {
 	    std::cerr << "Failed to parse VCF on line " << event_line << std::endl;
+	    continue;
+	  }
 	  
 	  // convert to numbers
 	  try { 
@@ -621,14 +737,15 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	    }
 	    
 	    // sanger conditional on distance
-	    if ( mv.r.chr >= 0 && mv.c.chr >= 0 && mv.distance() >= SANGER_DIST_LIM && keep && (mv.r < mv.c) && (!inter_only || mv.r.chr != mv.c.chr)) {
+	    //bool blacklist_pass = !black.findOverlapping(mv.r) && !black.findOverlapping(mv.c);
+	    if (mv.r.chr >= 0 && mv.c.chr >= 0 && (mv.r.chr != mv.c.chr || (mv.distance() >= min_size && mv.distance() <= max_size)) && keep && (mv.r < mv.c) && (!inter_only || mv.r.chr != mv.c.chr) && (!m_intra_only || (m_intra_only && mv.r.chr == mv.c.chr))) {
 	      
 	      // add the event
 	      addMatrixValue(mv);
 	      
 	      // increment the event counter
 	      ++new_events;
-	    }
+	    } 
 
 	  } catch(...) {
 	    std::cerr << "********************************" << std::endl;
@@ -671,12 +788,15 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
   // scramble to make even around the diagonal
   for (auto& i : m_vec) 
     for (auto& j : i) 
-      if (rand() % 2)
+      if (rand() % 2) {
 #ifdef MV_LITE
 	j = MatrixValue(j.c_chr, j.c, j.r_chr, j.r);
 #else	
+	int idd = j.id;
 	j = MatrixValue(j.c, j.r);
+	j.id = idd;
 #endif
+      }
 
   // fill event histograms
   fillQuantileHistograms(m_num_bins);
@@ -894,6 +1014,112 @@ void Matrix::dedupe() {
   m_inter = inter;
 }
 
+OverlapResult Matrix::checkIntraUnitOverlaps(SnowTools::GRC * grvA) {
+
+  if (!grvA->size() || inter_only)
+    return OverlapResult(0,m_intra+m_inter);
+
+  size_t overlap = 0;
+  size_t no_overlap = 0;
+
+  // faster way to do it
+  for (auto& i : m_vec) {
+    for (auto& j : i) {
+      if (grvA->overlapSameBin(j.r, j.c))
+	++overlap;
+      else 
+	++no_overlap;
+    }
+  }
+  
+  return OverlapResult(overlap, no_overlap);
+  
+  // make grc
+  //bool ff = true;
+  
+  int ii = 0;
+  if (!grc1.size() || !grc2.size()) {  // only make this once
+    grc1.clear(); grc2.clear();
+    //std::cerr << " creating grc for " << m_id << std::endl;
+    for (auto& i : m_vec) {
+      for (auto& j : i) {
+	//if (ff){ std::cerr << j.r << " - " << j.c << std::endl; ff = false; } 
+	grc1.add(GR(j.r, ii));
+	grc2.add(GR(j.c, ii));
+	assert(!inter_only || (j.r.chr != j.c.chr));
+	++ii;
+      }
+    }
+    grc1.createTreeMap(); // sorts it, so query order is messed up
+    grc2.createTreeMap();
+    
+  }
+
+  std::vector<int32_t> sub1, que1, sub2, que2;
+  grvA->findOverlaps(grc1, que1, sub1, true);
+  grvA->findOverlaps(grc2, que2, sub2, true);
+
+  // make subject to query hash
+  std::unordered_map<size_t,size_t> sub1_to_que1;
+  std::unordered_map<size_t,size_t> sub2_to_que2;
+  for (size_t i = 0; i < que2.size(); ++i) {
+    sub2_to_que2[grc2.at(sub2[i]).id] = que2[i]; // each subject (event) should have unique query (bed region). Not vice versa
+  }
+
+  // want to count number of unique subject ids that share the same query id
+  // loop through bed track regions
+  for (size_t i =0; i < sub1.size(); ++i) {
+    std::unordered_map<size_t, size_t>::const_iterator tt = sub2_to_que2.find(grc1.at(sub1[i]).id);
+    if (tt != sub2_to_que2.end() && tt->second == que1[i]) { // q1 (bed region for Row) and q2 (bed region for Column) must be equal for a given subject (event)
+      ++overlap;
+      assert(!inter_only); // impossible for intra-unit overlaps if inter-only
+    } else {
+      ++no_overlap;
+    }
+  }
+
+  /*
+
+  for (auto& i : m_vec) {
+    for (auto& j : i) {
+      SnowTools::GRC grc1(j.r);
+      SnowTools::GRC grc2(j.c);
+      grc1.createTreeMap();
+      grc2.createTreeMap();
+      std::vector<int32_t> sub1, que1, sub2, que2;
+      grvA->findOverlaps(grc1, que1, sub1, true);
+      grvA->findOverlaps(grc2, que2, sub2, true);
+      //std::cerr << " checking overlap of  " <<  j.r << " sub1 " << sub1.size() << " que1 " << que1.size() << std::endl;
+      //std::cerr << " checking overlap of  " <<  j.c << " sub2 " << sub2.size() << " que2 " << que2.size() << std::endl;
+      //if (que1.size() && que2.size())
+      //	std::cerr << "...... " << que1[0] << " _ " << que2[0] << std::endl;
+      if (que1.size() && que2.size() && que1[0] == que2[0]) {
+	++overlap;
+	//std::cerr << "Intra overlap " << j.r << " - " << j.c << " ----- " << grvA->at(sub1[0]) << std::endl;
+      } else {
+	++no_overlap;
+      }
+      
+    }
+  }
+  */
+
+  return OverlapResult(overlap, no_overlap);
+
+}
+/*
+void Matrix::projec_to_finite() {
+
+  for (auto& i : m_vec) {
+    for (auto& j : i) {
+      double rr = SnowTools::CHR_LEN_VEC[j.r.chr] + j.r.pos1;
+      double cc = SnowTools::CHR_LEN_VEC[j.c.chr] + j.c.pos1;
+      int rrr = std::floor(((double)j.r.pos1) * )
+    }
+  }
+  
+  }*/
+
 OverlapResult Matrix::checkOverlaps(SnowTools::GRC * grvA, SnowTools::GRC * grvB) {
 
   if (!grvA->size() || !grvB->size())
@@ -902,23 +1128,27 @@ OverlapResult Matrix::checkOverlaps(SnowTools::GRC * grvA, SnowTools::GRC * grvB
   size_t overlap = 0;
   size_t no_overlap = 0;
 
-  // check overlaps
-
   for (auto& i : m_vec)
     for (auto& j : i) {
-      if (j.r.chr != j.c.chr) {
 
-	size_t ovl1 = grvA->findOverlapping(j.r);
-	size_t ovl2 = grvB->findOverlapping(j.c);
-
-	size_t ovl3 = grvA->findOverlapping(j.c);
-	size_t ovl4 = grvB->findOverlapping(j.r);
-
-	if ( (ovl1 > 0 && ovl2 > 0) || (ovl3 > 0 && ovl4 > 0) )
-	  ++overlap;
-	else
+      if (grvA->findOverlapping(j.r) && grvB->findOverlapping(j.c)) {
+	++overlap;
+	if (grvA->size() == grvB->size() && grvA->overlapSameBin(j.r, j.c)) { // take it back if same bin for same event
+	  --overlap;
 	  ++no_overlap;
+	}
+	continue;
       }
+      
+      if (grvA->findOverlapping(j.c) && grvB->findOverlapping(j.r)) {
+	++overlap;
+	if (grvA->size() == grvB->size() && grvA->overlapSameBin(j.r, j.c)) { // take it back if same bin for same event
+	  ++no_overlap;
+	  --overlap;
+	}
+	continue;
+      }
+      ++no_overlap;
     }
 
   return OverlapResult(overlap, no_overlap);

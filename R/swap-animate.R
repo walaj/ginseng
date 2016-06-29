@@ -1,11 +1,7 @@
 #!/usr/bin/env Rscript
 
 ### height of the "real" bar in the histograms. Higher number for higher num matrices
-YHEIGHT = 600
-
-## check for ImageMagick
-if (!grepl("imagemagick", Sys.getenv("PATH")))
-  stop("Need to have ImageMagick installed for use with R animation package. Broad: use ImageMagick")
+YHEIGHT = 25
 
 library(optparse)
 
@@ -13,21 +9,22 @@ option_list = list(
   make_option(c("-C", "--chrom"),        type = "numeric", default = 0,  help = "Limit animation to one chromosome (0 = dont)"),    
   make_option(c("-a", "--analysis_id"),        type = "character", default = "no_id",  help = "Animation data file from swap (default: animation.csv"),  
   make_option(c("-t", "--interval"),     type = "numeric", default = 0.2,  help = "GIF interval (in seconds)"),
-  make_option(c("-w", "--width"),        type = "numeric", default = 800,  help = "Animation width (default 800)"),
+  make_option(c("-w", "--width"),        type = "numeric", default = 1200,  help = "Animation width (default 800)"),
   make_option(c("-d", "--downsample"),   type = "numeric", default = 1.0,  help = "Downsample events by to this fraction of original. Default 1"),
   make_option(c("-f", "--firstandlast"), type="logical", default=FALSE, help="GIF data and final swap only"),
   make_option(c("-s", "--scale")        , type="numeric", default=1e6, help="Amount to round coordinates to for plotting. Default 1e6"),
-  make_option(c("-k", "--height"),       type = "numeric", default = 800,  help = "Animation height (default 800)")
+  make_option(c("-k", "--height"),       type = "numeric", default = 1200,  help = "Animation height (default 800)"),
+  make_option(c("-A", "--animateonly"),       type = "numeric", default = 0,  help = "Animation height (default 800)")
   )
 
 parseobj = OptionParser(option_list=option_list)
 opt = parse_args(parseobj)
 aid = opt$analysis_id
 
-if (!file.exists(paste0(aid,".animation.csv"))) {
-  print(print_help(parseobj))
-  stop(paste("Animation file does not exist", paste0(aid,".animation.csv")))
-}
+#if (!file.exists(paste0(aid,".animation.csv"))) {
+#  print(print_help(parseobj))
+#  stop(paste("Animation file does not exist", paste0(aid,".animation.csv")))
+#}
 
 SCALE=opt$scale
 
@@ -48,6 +45,94 @@ hg19_len <- c(249250621,243199373,198022430,191154276,180915260,
 
 hg19_clen <- c(0, cumsum(hg19_len))
 names(hg19_clen) <- c(seq(22), 'X', 'Y', 'M')
+
+make_plots = function(RFILE, suffix = "") {
+  
+  if (file.exists(RFILE) && file.info(RFILE)$size > 0) {
+    
+    ## get the distribution of background values
+    print(paste("...reading results CSV file:", RFILE))
+    rt <- as.data.table(read.delim(RFILE, sep=",", header=FALSE))
+    if (ncol(rt) == 5) {
+      colnames(rt) <- c("reg1", "reg2","Overlap", "No_Overlap", "ID")
+      rt[, EXP := paste(reg1, reg2, sep="--")]
+    }
+    else {
+      colnames(rt) <- c("EXP","Overlap", "No_Overlap", "ID")
+    }
+    
+    setkey(rt, EXP)
+    rt <- rt[!grepl("ALL", EXP) & !grepl("PROM", EXP)]
+    
+    ## get the actual values
+    dum0 <- data.table(EXP=rep(rt$EXP[rt$ID==-1], each=2), x=rep(rt$Overlap[rt$ID==-1], each=2),y=rep(c(0,YHEIGHT), sum(rt$ID==-1)))
+    setkey(dum0, EXP)
+    
+    ## get the odds ratios
+    dt2 <- unique(dum0)[setkey(setnames(rt[, mean(Overlap), by=EXP], "V1", "Rand"),EXP)]
+    dt2[, odds := ifelse(Rand > 0, x / Rand, 0), by=EXP]
+    setkey(dt2, odds)
+    
+    rt$EXP = factor(rt$EXP, levels=unique(dt2$EXP))
+    dum0$EXP = factor(dum0$EXP, levels=unique(dt2$EXP))
+    
+    ## fit normal distribution
+    ## dd is for plotting normal dist, dt2 is for odds ratio
+    BINWIDTH=10
+    NUM_MATS = (length(unique(rt$ID))-1)*BINWIDTH
+    dd=rt[ID >=0, as.list(MASS::fitdistr(Overlap, "normal")$estimate), by=EXP]
+    setkey(dd, EXP)
+    setkey(dt2)
+    dt2 = dt2[dd]
+    dd2=dd[, list(x=seq(mean - 3*sd, mean+3*sd, by=BINWIDTH), y=dnorm(x=seq(mean - 3*sd, mean+3*sd, by=BINWIDTH), mean=mean, sd=sd)*NUM_MATS), by=EXP]
+    setkey(dd2, EXP)
+    dd = dd[dd2]
+    
+    ## get the pvalues of the real overlaps using the fitted normal
+    rt2 <- unique(rt[ID >=0])
+    setkey(rt2, EXP)
+    setkey(dt2, EXP)
+    dt2[, pval := pnorm(x, mean, sd)]
+    dt2[, hi_odds := x / (mean - sd)]
+    dt2[, low_odds := x / (mean + sd)]
+    dt2$sig = "no"
+    dt2$sig[dt2$hi_odds < 1] = 'depleted'
+    dt2$sig[dt2$low_odds > 1] = 'enriched'
+    dt2$sig = factor(dt2$sig, levels=c("no","depleted","enriched"))
+
+    if (nchar(suffix) > 0)
+      suffix = paste0(suffix, ".")
+
+    ## make the odds ratio plot
+    setkey(dt2, odds)
+    dt2$EXP = factor(dt2$EXP, levels=unique(dt2$EXP))
+    write.table(dt2, row.names=FALSE, col.names=TRUE, quote=FALSE, file=paste0(aid,".odds.", suffix, "csv"))
+    
+    g.odds <- ggplot(data=dt2, aes(x=EXP, y=odds, color=sig)) + geom_point() + geom_errorbar(aes(ymin=low_odds, ymax=hi_odds)) +
+      theme(axis.text.x = element_text(angle=90), legend.position='none') + xlab("") + ylab("Odds over NULL") + coord_flip() +
+        scale_color_manual(values=c("black", "darkred", "darkgreen"))
+    
+                                        #levels(rt$EXP <- factor(rt$EXP))
+                                        #levels(rt$EXP) <- c("Fragile-Fragile", "Fragile-Gene", "Fragile-Gene Shuffle", "Gene-Gene", "Gene Shuffle-Gene Shuffle")
+    
+    g.res <- ggplot() + geom_histogram(data=rt[ID >= 0], aes(x=Overlap), binwidth=10) +
+      theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0, aes(x=x, y=y), color="red") +
+        geom_line(data=dd, aes(x=x,y=y), color='blue')
+
+    if (grepl("intra", suffix))
+      pdf(paste0(aid,".results.", suffix, "pdf"), height=8, width=6)
+    else
+      pdf(paste0(aid,".results.", suffix, "pdf"), height=20, width=20)      
+    print(g.res)
+    dev.off()
+
+    pdf(paste0(aid, ".odds.", suffix, "pdf"), height=10, width=8)
+    print(g.odds)
+    dev.off()
+    
+  }
+  
+}
 
 fancy_scientific <- function(l) {
   l <- format(l)
@@ -78,37 +163,37 @@ fancy_scientific <- function(l) {
                                         #t <- t[order(s)]
 
 ## set the non-scrambled
-print("...reading CSV file")
+if(file.exists(paste0(aid,".animation.csv"))) {
+  print("...reading CSV file")
                                         #bt <- read.delim(opt$input, sep=",", header=FALSE)
-print("...reading animation csv")
-bt <- fread(paste0(aid, ".animation.csv"))
-setnames(bt, c("V1","V2","V3","V4","V5","V6"), c("chr1","pos1","chr2", "pos2", "count", "step")) ##, "T", "accepted","shared")
-if (opt$chrom > 0) {
-  print(paste("LIMING TO JUST CHROMOSOME", opt$chrom))
-  bt <- bt[chr1 == (opt$chrom-1) | chr2 == (opt$chrom-1)]
-  print(nrow(bt))
-}
-bt[, type := ifelse(step==1, "Data", "Swap")]
-bt[, d := ifelse(chr1==chr2, abs(pos1-pos2),-1)]
-data.ix = bt$type == "Data"
+  print("...reading animation csv")
+  bt <- fread(paste0(aid, ".animation.csv"))
+  setnames(bt, c("V1","V2","V3","V4","V5","V6"), c("chr1","pos1","chr2", "pos2", "count", "step")) ##, "T", "accepted","shared")
+  if (opt$chrom > 0) {
+    print(paste("LIMING TO JUST CHROMOSOME", opt$chrom))
+    bt <- bt[chr1 == (opt$chrom-1) | chr2 == (opt$chrom-1)]
+    print(nrow(bt))
+  }
+  bt[, type := ifelse(step==0, "Data", "Swap")]
+  bt[, d := ifelse(chr1==chr2, abs(pos1-pos2),-1)]
+  data.ix = bt$type == "Data"
                                         #if (any(bt$d > 0))
                                         #  becdf <- ecdf(bt$d[data.ix & bt$d > 0])
-
-mx = max(bt$step)
-
-## read in the histogram data
-print('...reading histogram file')
-ht <- read.delim(paste0(aid, ".animation.histogram.csv"), sep=',', header=FALSE)
-ht$step = rep(unique(bt$step), each=abs(diff(which(ht$V1==0)[1:2]))) ## add the step information
-ht <- ht[ht$V1 != 250e6, ]# don't plot inter-chrom events
-
-## read in the small histogram data
-print('...reading small histogram file')
-ht_s <- read.delim(paste0(aid, ".animation.histogram.small.csv"), sep=',', header=FALSE)
-ht_s$step = rep(unique(bt$step), each=abs(diff(which(ht_s$V1==0)[1:2]))) ## add the step information
-ht_s <- ht_s[ht_s$V1 != 250e6, ] # don't plot inter-chrom events
-
-## read in the BED files
+  mx = max(bt$step)
+  
+  ## read in the histogram data
+  print('...reading histogram file')
+  ht <- read.delim(paste0(aid, ".animation.histogram.csv"), sep=',', header=FALSE)
+  ht$step = rep(unique(bt$step), each=abs(diff(which(ht$V1==0)[1:2]))) ## add the step information
+  ht <- ht[ht$V1 != 250e6, ]# don't plot inter-chrom events
+  
+  ## read in the small histogram data
+  print('...reading small histogram file')
+  ht_s <- read.delim(paste0(aid, ".animation.histogram.small.csv"), sep=',', header=FALSE)
+  ht_s$step = rep(unique(bt$step), each=abs(diff(which(ht_s$V1==0)[1:2]))) ## add the step information
+  ht_s <- ht_s[ht_s$V1 != 250e6, ] # don't plot inter-chrom events
+  
+  ## read in the BED files
                                         #print('...reading BEDs')
                                         #tt <- data.frame(xmin=0,xmax=0,ymin=0,ymax=0)
                                         #if (!is.null(opt$bedA) && !is.null(opt$bedB)) {
@@ -171,50 +256,126 @@ max.d = max(bt$d[bt$d >=0])
                                         #df.s <- df.s[, c("shared","step")]
                                         #df.s$shared = df.s$shared / sum(data.ix)
 
-## make the results histogram
-RFILE <- paste0(aid, ".results.csv")
-if (file.exists(RFILE) && file.info(RFILE)$size > 0) {
-  
-  print(paste("...reading results CSV file:", RFILE))
-  rt <- read.delim(RFILE, sep=",", header=FALSE)
-  print(nrow(rt))
-  colnames(rt) <- c("reg1", "reg2","Overlap", "No_Overlap", "ID")
-  rt$EXP = paste(rt$reg1, rt$reg2, sep="--")
-  
-  print(max(rt$ID))
-  
-  size = 1
-  ##id.to.keep <- c("FRAG--FRAG") #,"GENE--GENE","FRAG--GENE","GENE_SHUF--GENE_SHUF","FRAG--GENE_SHUF") #, "GENE--PROM_SHUF","GENE_SHUF--PROM_SHUF")
-  id.to.keep <- unique(rt$EXP)
-  rt <- rt[rt$EXP %in% id.to.keep,]
-  dt.rt <- data.table(rt)
-  zscore = (rt$Overlap[1] - mean(rt$Overlap[-1]))/sd(rt$Overlap)
-  pvalue = max(sum(rt$Overlap[-1] > rt$Overlap[1]) / (nrow(rt)-1), 1/(nrow(rt)-1))
-  
-                                        #levels(rt$EXP <- factor(rt$EXP))
-                                        #levels(rt$EXP) <- c("Fragile-Fragile", "Fragile-Gene", "Fragile-Gene Shuffle", "Gene-Gene", "Gene Shuffle-Gene Shuffle")
-  dum0 <- data.frame(EXP=rep(rt$EXP[rt$ID==-1], each=2), x=rep(rt$Overlap[rt$ID==-1], each=2),y=rep(c(0,YHEIGHT), sum(rt$ID==-1)))
-  g.res <- ggplot() + geom_histogram(data=rt[rt$ID >= 0,c(3,4,5,6)], aes(x=Overlap)) +
-    ##ggtitle(paste("Data Overlap:", rt$Overlap[1], "Z-score:", zscore, "Matrices:", nrow(rt)-1, "P-val:", pvalue)) +
-    theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0, aes(x=x, y=y), color="red")
-                                        #theme(text=element_text(size+10))
-  pdf(paste0(aid,".results.pdf"), height=30, width=30)
-  print(g.res)
-  dev.off()
-
 }
+
+## make the results histogram
+if (!opt$animateonly) {
+  RFILE <- paste0(aid, ".results.csv")
+  make_plots(RFILE, "")
+  RFILE2 <- paste0(aid, ".results.intra.csv")
+  make_plots(RFILE2, "intra")
+}
+
+## if (file.exists(RFILE) && file.info(RFILE)$size > 0) {
+
+##   ## get the distribution of background values
+##   print(paste("...reading results CSV file:", RFILE))
+##   rt <- as.data.table(read.delim(RFILE, sep=",", header=FALSE))
+##   colnames(rt) <- c("reg1", "reg2","Overlap", "No_Overlap", "ID")
+##   rt[, EXP := paste(reg1, reg2, sep="--")]
+##   setkey(rt, EXP)
+##   rt <- rt[!grepl("ALL", EXP) & !grepl("PROM", EXP)]
+  
+##   ## get the actual values
+##   dum0 <- data.table(EXP=rep(rt$EXP[rt$ID==-1], each=2), x=rep(rt$Overlap[rt$ID==-1], each=2),y=rep(c(0,YHEIGHT), sum(rt$ID==-1)))
+##   setkey(dum0, EXP)
+  
+##   ## get the odds ratios
+##   dt2 <- unique(dum0)[setkey(setnames(rt[, mean(Overlap), by=EXP], "V1", "Rand"),EXP)]
+##   dt2[, odds := ifelse(Rand > 0, x / Rand, 0), by=EXP]
+##   setkey(dt2, odds)
+  
+##   rt$EXP = factor(rt$EXP, levels=unique(dt2$EXP))
+##   dum0$EXP = factor(dum0$EXP, levels=unique(dt2$EXP))
+
+##   ## fit normal distribution
+##   ## dd is for plotting normal dist, dt2 is for odds ratio
+##   BINWIDTH=10
+##   NUM_MATS = (length(unique(rt$ID))-1)*BINWIDTH
+##   dd=rt[ID >=0, as.list(MASS::fitdistr(Overlap, "normal")$estimate), by=EXP]
+##   setkey(dd, EXP)
+##   setkey(dt2)
+##   dt2 = dt2[dd]
+##   dd2=dd[, list(x=seq(mean - 3*sd, mean+3*sd, by=BINWIDTH), y=dnorm(x=seq(mean - 3*sd, mean+3*sd, by=BINWIDTH), mean=mean, sd=sd)*NUM_MATS), by=EXP]
+##   setkey(dd2, EXP)
+##   dd = dd[dd2]
+  
+##   ## get the pvalues of the real overlaps using the fitted normal
+##   rt2 <- unique(rt[ID >=0])
+##   setkey(rt2, EXP)
+##   setkey(dt2, EXP)
+##   dt2[, pval := pnorm(x, mean, sd)]
+##   dt2[, hi_odds := x / (mean - sd)]
+##   dt2[, low_odds := x / (mean + sd)]
+##   dt2$sig = "no"
+##   dt2$sig[dt2$hi_odds < 1] = 'depleted'
+##   dt2$sig[dt2$low_odds > 1] = 'enriched'
+##   dt2$sig = factor(dt2$sig, levels=c("no","depleted","enriched"))
+  
+##   ## make the odds ratio plot
+##   setkey(dt2, odds)
+##   dt2$EXP = factor(dt2$EXP, levels=unique(dt2$EXP))
+##   g.odds <- ggplot(data=dt2, aes(x=EXP, y=odds, color=sig)) + geom_point() + geom_errorbar(aes(ymin=low_odds, ymax=hi_odds)) +
+##     theme(axis.text.x = element_text(angle=90), legend.position='none') + xlab("") + ylab("Odds over NULL") + coord_flip() +
+##       scale_color_manual(values=c("black", "darkred", "darkgreen"))
+  
+##   #levels(rt$EXP <- factor(rt$EXP))
+##   #levels(rt$EXP) <- c("Fragile-Fragile", "Fragile-Gene", "Fragile-Gene Shuffle", "Gene-Gene", "Gene Shuffle-Gene Shuffle")
+
+##   g.res <- ggplot() + geom_histogram(data=rt[ID >= 0], aes(x=Overlap), binwidth=10) +
+##     theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0, aes(x=x, y=y), color="red") +
+##       geom_line(data=dd, aes(x=x,y=y), color='blue')
+  
+##   pdf(paste0(aid,".results.pdf"), height=30, width=30)
+##   print(g.res)
+##   dev.off()
+
+##   pdf(paste0(aid, ".odds.pdf"), height=10, width=8)
+##   print(g.odds)
+##   dev.off()
+  
+## }
+
+## if (file.exists(RFILE2) && file.info(RFILE2)$size > 0) {
+  
+##   print(paste("...reading results.intra CSV file:", RFILE2))
+##   rt <- read.delim(RFILE2, sep=",", header=FALSE)
+##   print(nrow(rt))
+##   colnames(rt) <- c("reg1","Overlap", "No_Overlap", "ID")
+##   rt$EXP = rt$reg1
+  
+##   ##id.to.keep <- c("FRAG--FRAG") #,"GENE--GENE","FRAG--GENE","GENE_SHUF--GENE_SHUF","FRAG--GENE_SHUF") #, "GENE--PROM_SHUF","GENE_SHUF--PROM_SHUF")
+##   #id.to.keep <- c("GENE--GENE","SINE--SINE","FRAG--REFGENE")
+##   #id.to.keep <- c("FRAG--FRAG","LINE--LINE","GENE--GENE_SHUF")
+##   id.to.keep <- unique(rt$EXP)
+##   rt <- rt[rt$EXP %in% id.to.keep,]
+##   zscore = (rt$Overlap[1] - mean(rt$Overlap[-1]))/sd(rt$Overlap)
+##   pvalue = max(sum(rt$Overlap[-1] > rt$Overlap[1]) / (nrow(rt)-1), 1/(nrow(rt)-1))
+  
+##                                         #levels(rt$EXP <- factor(rt$EXP))
+##                                         #levels(rt$EXP) <- c("Fragile-Fragile", "Fragile-Gene", "Fragile-Gene Shuffle", "Gene-Gene", "Gene Shuffle-Gene Shuffle")
+##   dum0 <- data.frame(EXP=rep(rt$EXP[rt$ID==-1], each=2), x=rep(rt$Overlap[rt$ID==-1], each=2),y=rep(c(0,YHEIGHT), sum(rt$ID==-1)))
+##   g.res <- ggplot() + geom_histogram(data=rt[rt$ID >= 0,c(2,3,4,5)], aes(x=Overlap)) +
+##     ##ggtitle(paste("Data Overlap:", rt$Overlap[1], "Z-score:", zscore, "Matrices:", nrow(rt)-1, "P-val:", pvalue)) +
+##     theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0, aes(x=x, y=y), color="red")
+##                                         #theme(text=element_text(size+10))
+##   pdf(paste0(aid,".results.intra.pdf"), height=50, width=50)
+##   print(g.res)
+##   dev.off()
+
+## }
 
 MIN = 0
 MAX = max(c(bt$dsam1, bt$dsam2))
 print(paste("MAX", MAX))
-SIZE = 1
+SIZE = 0.5
 TEXT_SIZE = 12
 
 afunc <- function(bt, steps, data.ix) {
   sapply(seq_along(steps), function(x) {
   
   mx.u <-max(unique(steps))
-  if (steps[x] == 1 && x==1) {
+  if (steps[x] == 0 && x==1) {
     print(paste("Working on DATA"))
   } else if (steps[x] == mx.u && x==which(steps==mx.u)[1]) {
     print(paste("Working on FINAL"))
@@ -229,10 +390,10 @@ afunc <- function(bt, steps, data.ix) {
   
   ## do the histogram plot
   g.dhist <- ggplot() + geom_rect(data=ht[ht$step==steps[x], ], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill=NA, color='darkred') +
-    geom_rect(data=ht[ht$step==1,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill=NA, color='darkgreen') +
+    geom_rect(data=ht[ht$step==0,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill=NA, color='darkgreen') +
       geom_rect(data=ht_s[ht_s$step==steps[x],], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill="red", color="red", alpha=0.2) +
-        geom_rect(data=ht_s[ht_s$step==1,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill="green", color="green", alpha=0.2) +
-          theme_bw() + xlab("Span") + ylab("Count") + coord_cartesian(xlim=c(2,8.5), ylim=c(0, max(ht$V3[ht$step==1])*1.1)) + scale_x_continuous(labels=fancy_scientific, breaks=1:8)
+        geom_rect(data=ht_s[ht_s$step==0,], aes(xmin=log(V1+1,10), xmax=log(V2+1,10), ymin=0, ymax=V3), fill="green", color="green", alpha=0.2) +
+          theme_bw() + xlab("Span") + ylab("Count") + coord_cartesian(xlim=c(2,8.5), ylim=c(0, max(ht$V3[ht$step==0])*1.1)) + scale_x_continuous(labels=fancy_scientific, breaks=1:8)
   
   ## set the orig plot
   g.orig <- ggplot() + geom_point(data=bt[data.ix,], aes(x=dsam1, y=dsam2), size=SIZE) + theme_bw() + ggtitle(paste("Original data:", sum(data.ix), "events")) +
@@ -285,17 +446,22 @@ afunc <- function(bt, steps, data.ix) {
                                         #gs <- ggplot() + geom_line(data=df, aes(x=x, y=y, color=type), size=2) + theme_bw() + xlab("Distance") + ylab("CDF")  +
                                         #ggtitle(paste("Intra-", intra, "Inter-", inter, "Ratio: ", ratio)) + theme(legend.title=element_blank()) + ylim(c(0,1)) + xlim(c(0,175e6)) +
                                         #          theme(text = element_text(size=TEXT_SIZE)) + scale_colour_manual(values=c("darkgreen", "darkred"), name='')
-  
+
   if (any(bt$d > 0))
-    suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), arrangeGrob(g.ohist, g.thist, ncol=2), g.dhist, nrow=3, ncol=1, heights=c(1/2,1/4,1/4)))
+    return(suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), arrangeGrob(g.ohist, g.thist, ncol=2), g.dhist, nrow=3, ncol=1, heights=c(1/2,1/4,1/4))))
   else
-    suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), g.dhist, nrow=2, ncol=1, heights=c(1/2,1/2)))
+    return(suppressWarnings(grid.arrange(arrangeGrob(g.orig, g.swap, ncol=2), g.dhist, nrow=2, ncol=1, heights=c(1/2,1/2))))
 })
 }
 
+## check for ImageMagick
+if (!grepl("imagemagick", Sys.getenv("PATH")))
+  stop("Need to have ImageMagick installed for use with R animation package. Broad: use ImageMagick")
+
+
 ## make the animation
 r <- floor(1/opt$interval)
-steps <- c(rep(1,r),unique(bt$step), rep(unique(bt$step)[length(unique(bt$step))], r))
+steps <- c(rep(0,r),unique(bt$step), rep(unique(bt$step)[length(unique(bt$step))], r))
 if (opt$firstandlast)
   steps = c(steps[1], steps[(length(steps))])
                                         #ppdf(print(afunc(bt, steps[1], data.ix)))
@@ -303,13 +469,15 @@ if (opt$firstandlast)
 #print(afunc(bt, steps[length(steps)], data.ix))
 #dev.off()
 print(steps)
+print("...making GIF")
 saveGIF(afunc(bt, steps, data.ix), movie.name=paste0(aid, ".swap.gif"), interval=opt$interval, ani.width=opt$width, ani.height=opt$height, ani.dev='jpeg')
+print("...DONE making GIF")
 
 #####
-if (FALSE)
-  {
-    system.time(bt <- read.delim(gzfile("/xchip/gistic/Jeremiah/Projects/Significance/Sanger2500/Runs/150427/all.matrices.csv.gz"), sep="\t", header=FALSE)    )
-    dt <- data.table(bt)
-    setnames(dt, c("V1","V2","V3","V4","V5"), c("r_chr","r_pos","c_chr","c_pos","id"))
-    setkey(dt, id, r_chr, r_pos)
-  }
+#if (FALSE)
+#  {
+#    system.time(bt <- read.delim(gzfile("/xchip/gistic/Jeremiah/Projects/Significance/Sanger2500/Runs/150427/all.matrices.csv.gz"), sep="\t", header=FALSE)    )
+#    dt <- data.table(bt)
+#    setnames(dt, c("V1","V2","V3","V4","V5"), c("r_chr","r_pos","c_chr","c_pos","id"))
+ #   setkey(dt, id, r_chr, r_pos)
+  #}

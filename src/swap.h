@@ -265,6 +265,7 @@ private:
   std::unordered_map<std::string, SnowTools::GRC> *m_bed_mat;
 
   std::ofstream * m_results;
+  std::ofstream * m_results2;
   ogzstream * m_oz_matrix;
   Matrix * summed_results;
 
@@ -274,9 +275,9 @@ public:
    * @param mat Matrix to be swapped
    */
   SwapWorkItem(Matrix* mat, std::vector<Matrix*> *all_mats, pthread_mutex_t * lock, size_t id, 
-	       std::unordered_map<std::string, SnowTools::GRC> *mB, std::ofstream * ro, ogzstream * oz, 
+	       std::unordered_map<std::string, SnowTools::GRC> *mB, std::ofstream * ro, std::ofstream * ro2, ogzstream * oz, 
 	       Matrix* sr)  
-    : m_orig_mat(mat), m_all_mats(all_mats), m_lock(lock), m_id(id), m_bed_mat(mB), m_results(ro), 
+    : m_orig_mat(mat), m_all_mats(all_mats), m_lock(lock), m_id(id), m_bed_mat(mB), m_results(ro), m_results2(ro2), 
     m_oz_matrix(oz), summed_results(sr)
   {
     
@@ -294,12 +295,16 @@ public:
     m_this_mat = new Matrix(*m_orig_mat);
     m_this_mat->m_id = m_id;
 
+    pthread_mutex_lock(m_lock);  
+    std::cerr << "...starting swaps on " << m_id << std::endl;
+    pthread_mutex_unlock(m_lock);
     m_this_mat->allSwaps(); 
 
     // get the overlaps
     std::unordered_map<std::string, OverlapResult> all_overlaps;
     std::unordered_map<std::string, bool> ovl_ovl_seen;
-    std::stringstream ss;
+    std::stringstream ss, ss2;
+    std::cerr << "...checking overlaps on " << m_id << std::endl;
     for (auto& i : *m_bed_mat) {
       for (auto& j : *m_bed_mat) {
 	if (i.first < j.first || (!ovl_ovl_seen.count(i.first) && i.first==j.first) ) { // don't need to do each one twice
@@ -314,10 +319,20 @@ public:
       }
     }
 
+    // check intra unit overlaps
+    std::cerr << "...checking intra-overlaps on " << m_id << std::endl;
+    for (auto& i : *m_bed_mat) {
+      if (do_intra_overlap(i.first)) {
+	OverlapResult ovl = m_this_mat->checkIntraUnitOverlaps(&i.second);
+	ss2 << i.first << "," << ovl.first << "," << ovl.second << "," << m_this_mat->m_id << std::endl; 
+      }
+    }
+
     pthread_mutex_lock(m_lock);  
-    summed_results->add(*m_this_mat);
-    (*m_results) << ss.str();
-    m_this_mat->writeGzip(m_oz_matrix);
+    //summed_results->add(*m_this_mat);
+    (*m_results)  << ss.str();
+    (*m_results2) << ss2.str();
+    //m_this_mat->writeGzip(m_oz_matrix);
     pthread_mutex_unlock(m_lock);
     
     delete m_this_mat;

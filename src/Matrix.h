@@ -16,6 +16,24 @@
 typedef uint32_t S;    
 typedef std::pair<size_t, size_t> OverlapResult;
 
+class GR : public SnowTools::GenomicRegion {
+ public:
+ GR() : SnowTools::GenomicRegion() {}
+ GR(const SnowTools::GenomicRegion& gr, int ii) : SnowTools::GenomicRegion(gr), id(ii) {}
+  int id;
+};
+
+inline bool do_intra_overlap(const std::string& name) {
+
+  std::vector<std::string> intra_unit_todo = {"TAD", "GENE", "FRAG","ALL", "LINE"};  
+  for (auto& i : intra_unit_todo) {
+    if (name.find(i) != std::string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Should we use lite MatrixValue code or GenomicRegion code?
 //#define MV_LITE 1
 
@@ -94,6 +112,7 @@ class MatrixValue {
       else 
 	return INTERCHR;
 #else
+
       int dist = r.distance(c);
       if (dist < 0) {
 	//assert(r.chr != c.chr);
@@ -161,7 +180,13 @@ class Matrix {
    * @param inter_only only load interchromosomal events and only do inter chr
    */
   Matrix(const std::string &file_list, size_t nb, size_t ns, 
-	 SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid);
+	 SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid,
+	 int tmin_size, int tmax_size, SnowTools::GRC& black, bool intra_only);
+
+  Matrix(const std::string &file_list, size_t nb, size_t ns, 
+	 SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid,
+	 int tmin_size, int tmax_size, bool dummy);
+
   Matrix() {}
 
   /** Delete this Matrix and free memory.
@@ -289,11 +314,14 @@ class Matrix {
    */
   OverlapResult checkOverlaps(SnowTools::GRC* grvA, SnowTools::GRC * grvB);
 
+  OverlapResult checkIntraUnitOverlaps(SnowTools::GRC * grvA);
+
   //double * temps; // pre-compute all probabilites at each temp, since same for every matrix
   uint16_t** probs; // an array holding the arrays of probabilites for each shift 
   uint8_t* bin_table;
 
   bool inter_only = false;
+  bool m_intra_only = false;
   
   size_t m_id = 0;
 
@@ -318,6 +346,9 @@ class Matrix {
     size_t m_inter = 0;
     size_t m_intra = 0;
 
+    SnowTools::GenomicRegionCollection<GR> grc1;
+    SnowTools::GenomicRegionCollection<GR> grc2; // hold treed genomic region collection of events for doing findOverlaps in checkIntraUnitOverlaps
+
     uint32_t * rand_rows;
     uint32_t * rand_cols;
     //uint16_t * rand_tval; // random numbers for temperatue monte carlo
@@ -328,6 +359,10 @@ class Matrix {
     MCMCData m_mcmc;
 
     std::string analysis_id;
+
+    int min_size = 1000;
+    int max_size = 250e6;
+
     // map to store sparse matrix entries, per chrom
     std::vector<MVec> m_vec;
 
