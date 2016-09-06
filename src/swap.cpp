@@ -6,12 +6,10 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
-#include "SnowTools/gzstream.h"
-#include <regex>
+#include "gzstream.h"
 
-#include "SnowTools/GenomicRegion.h"
-#include "SnowTools/GenomicRegionCollection.h"
-
+#include "SeqLib/GenomicRegion.h"
+#include "SeqLib/GenomicRegionCollection.h"
 #include <prng_engine.hpp>
 
 using namespace std;
@@ -19,7 +17,7 @@ using namespace std;
 vector<Matrix*> all_mats;
 static pthread_mutex_t swap_lock;
 
-static SnowTools::GRC blacklist;
+static SeqLib::GRC blacklist;
 
 namespace opt {
   
@@ -28,6 +26,8 @@ namespace opt {
 
   static int min_rar_size = 1000;
   static int max_rar_size = 250e6;
+
+  static std::string header_bam;
 
   static S num_steps = 10;
   static size_t verbose = 1;
@@ -133,14 +133,7 @@ bool __header_has_chr_prefix(bam_hdr_t * h) {
   return false;
 }
 
-int main(int argc, char** argv) {
-
-#ifdef __APPLE__
-  cerr << "CLOCK_GETTIME NOT AVAILABLE ON MAC" << endl;
-#else
-  // start the timer
-  clock_gettime(CLOCK_MONOTONIC, &start);
-#endif
+int runSwap(int argc, char** argv) {
 
   // open a mutex
   if (pthread_mutex_init(&swap_lock, NULL) != 0) {
@@ -156,9 +149,9 @@ int main(int argc, char** argv) {
     else if (opt::stored_matrices.length()) {
       cerr << "Stored matrix file " << opt::stored_matrices << endl;
     } 
-    cerr << "ID: " << opt::analysis_id << "Matrices: " << SnowTools::AddCommas(opt::num_matrices) << "\tSteps: " << SnowTools::AddCommas(opt::num_steps) << "\tHistBins: " << opt::num_bins << endl;
-    cerr << "Temp 1/2 life: " << SnowTools::AddCommas(opt::half_life) << endl;
-    cerr << "Animation:     " << (opt::anim_step > 0 ? SnowTools::AddCommas(opt::anim_step) : "OFF")  << endl;
+    cerr << "ID: " << opt::analysis_id << "Matrices: " << SeqLib::AddCommas(opt::num_matrices) << "\tSteps: " << SeqLib::AddCommas(opt::num_steps) << "\tHistBins: " << opt::num_bins << endl;
+    cerr << "Temp 1/2 life: " << SeqLib::AddCommas(opt::half_life) << endl;
+    cerr << "Animation:     " << (opt::anim_step > 0 ? SeqLib::AddCommas(opt::anim_step) : "OFF")  << endl;
     cerr << "BED list:      " << (opt::bed_list) << endl;
 
     if (opt::identifiers.size()) {
@@ -171,7 +164,7 @@ int main(int argc, char** argv) {
 
     if (opt::mode == OPT_SIMULATE) {
       cerr << "--------------- Simulating events ----------------" << std::endl;
-      cerr << "Num events: " << SnowTools::AddCommas((opt::num_events)) << "\tPowerLaw: " << opt::power_law << " FracInter: " << opt::frac_inter << std::endl;
+      cerr << "Num events: " << SeqLib::AddCommas((opt::num_events)) << "\tPowerLaw: " << opt::power_law << " FracInter: " << opt::frac_inter << std::endl;
       cerr << "--------------------------------------------------" << std::endl;
     }
     if (opt::half_life == 0) 
@@ -188,18 +181,18 @@ int main(int argc, char** argv) {
 	           "      RUNNING AS INTRA CHROMOSOMAL ONLY     " << std::endl 
 		<< "--------------------------------------------" << std::endl;
     else 
-      std::cerr << " Rearrangement size bounds: [" << SnowTools::AddCommas(opt::min_rar_size) << " - " << SnowTools::AddCommas(opt::max_rar_size) << "]" << std::endl;
+      std::cerr << " Rearrangement size bounds: [" << SeqLib::AddCommas(opt::min_rar_size) << " - " << SeqLib::AddCommas(opt::max_rar_size) << "]" << std::endl;
       
   }
 
-  //blacklist.add(SnowTools::GenomicRegion(1,33139671,33143258)); // really nasty region
+  //blacklist.add(SeqLib::GenomicRegion(1,33139671,33143258)); // really nasty region
   if (!opt::blacklist_file.empty()) {
-    blacklist.regionFileToGRV(opt::blacklist_file, 0, nullptr, false);
-    blacklist.createTreeMap();
+    blacklist = SeqLib::GRC(opt::blacklist_file, SeqLib::BamHeader());
+    blacklist.CreateTreeMap();
     std::cerr << "...read in blacklist " << blacklist.size() << std::endl;
   }
 
-  std::unordered_map<string, SnowTools::GRC> all_bed;
+  std::unordered_map<string, SeqLib::GRC> all_bed;
   // read the bed files
   if (opt::bed_list.length()) {
     if (opt::verbose) 
@@ -221,10 +214,9 @@ int main(int argc, char** argv) {
 	    if (count == 1)
 	      bedid = val;
 	    else {
-	      all_bed[bedid] = SnowTools::GRC();
-	      all_bed[bedid].regionFileToGRV(val);
-	      all_bed[bedid].createTreeMap();
-	      std::cerr << "...read in " << bedid << " with " << SnowTools::AddCommas(all_bed[bedid].size()) << " regions " << std::endl;
+	      all_bed[bedid] = SeqLib::GRC(val, SeqLib::BamHeader());
+	      all_bed[bedid].CreateTreeMap();
+	      std::cerr << "...read in " << bedid << " with " << SeqLib::AddCommas(all_bed[bedid].size()) << " regions " << std::endl;
 	    }
 	  }
 	}
@@ -232,10 +224,10 @@ int main(int argc, char** argv) {
   }
   
   // read in the mask
-  SnowTools::GRC grv_m;
+  SeqLib::GRC grv_m;
   if (opt::mask.length()) {
-    grv_m.regionFileToGRV(opt::mask);
-    grv_m.createTreeMap();
+    grv_m = SeqLib::GRC(opt::mask, SeqLib::BamHeader());
+    grv_m.CreateTreeMap();
     std::cerr << "Read in " << grv_m.size() << " region from the mask file " << opt::mask << endl;
   }
 
@@ -251,10 +243,6 @@ int main(int argc, char** argv) {
     //} else if (opt::input.length() && opt::mode != OPT_SIMULATE && opt::input.find(".csv") != std::string::npos) {  
     // read in events from a csv directly
     //m = new Matrix(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only, opt::identifiers, opt::analysis_id, opt::min_rar_size, opt::max_rar_size, true);
-  } else if (opt::mode == OPT_SIMULATE) {
-    // make a random matrix
-    std::cerr << "...simulating matrix with seed " << opt::seed << std::endl;
-    m = new Matrix(opt::num_events, opt::num_bins, opt::num_steps, opt::power_law, opt::frac_inter, opt::analysis_id);
   } else if (opt::stored_matrices.length()) {
     std::cerr << "...reading stored matrices" << std::endl;
     readStoredMatrices(opt::stored_matrices);
@@ -272,7 +260,7 @@ int main(int argc, char** argv) {
   probs[3] = (uint16_t*) calloc(opt::num_steps, sizeof(uint16_t));
   
   if (all_mats.size() == 0) {
-
+    
     // pre-compute the temps
     //double * temps = (double*) calloc(opt::num_steps, sizeof(double));
     if (frac_inter < 1 && opt::half_life && (double)opt::half_life/double(opt::num_steps) < 1) { // if half_life is zero, no temperature decay
@@ -283,7 +271,7 @@ int main(int argc, char** argv) {
        double tempr = TMAX*pow(2,-frac);
        // if too cold, then skip rest of compute
        if (tempr < 1) {
-	 std::cerr << "...filling cold (0 prob) to end of " << SnowTools::AddCommas(opt::num_steps) << std::endl;
+	 std::cerr << "...filling cold (0 prob) to end of " << SeqLib::AddCommas(opt::num_steps) << std::endl;
 	 for (size_t j = i; j < opt::num_steps; ++j) {
 	   probs[0][j] = 0; probs[1][j] = 0; probs[2][j] = 0; probs[3][j] = 0;
 	 }
@@ -294,7 +282,7 @@ int main(int argc, char** argv) {
        probs[2][i] = (uint16_t)std::min(std::floor(exp(-3/tempr)*TRAND), (double)TRAND);
        probs[3][i] = (uint16_t)std::min(std::floor(exp(-4/tempr)*TRAND), (double)TRAND);
        if (i % 5000000 == 0)
-	 std::cerr << "P(least-non-optimal) " << probs[0][i] << " P(most-non-optimal) " << probs[3][i] << " Temp " << tempr << " Step " << SnowTools::AddCommas<size_t>(i) << std::endl;
+	 std::cerr << "P(least-non-optimal) " << probs[0][i] << " P(most-non-optimal) " << probs[3][i] << " Temp " << tempr << " Step " << SeqLib::AddCommas<size_t>(i) << std::endl;
      }
       // half life is huge, so we don't want to decay at all (permanently hot)
     } else if ((double)opt::half_life/double(opt::num_steps) >= 1) { 
@@ -320,7 +308,7 @@ int main(int argc, char** argv) {
 	}
       m->bin_table = bin_table;  
     }
-
+    
 
     // precompute which chrom to acces
     if (!opt::inter_only && frac_inter < 1) {
@@ -330,7 +318,7 @@ int main(int argc, char** argv) {
 
       size_t num_intra = frac_inter < 1 ? std::floor((double)opt::num_steps * ((double)1 - 0.5 * frac_inter)) : opt::num_steps;
       uint8_t * rand_chr = (uint8_t*) calloc(opt::num_steps, sizeof(uint8_t));
-      std::cerr << "...fraction inter " << frac_inter << " -- number of swaps to make intra-chromosomal: " << SnowTools::AddCommas(num_intra) << std::endl;
+      std::cerr << "...fraction inter " << frac_inter << " -- number of swaps to make intra-chromosomal: " << SeqLib::AddCommas(num_intra) << std::endl;
 
       for (size_t i = 0; i < opt::num_steps; ++i) {
 	size_t rv = eng1() % m->m_intra;    
@@ -355,7 +343,7 @@ int main(int argc, char** argv) {
   // output the original matrix
   std::ofstream initial;
   initial.open(opt::analysis_id + ".original.csv");
-
+  
 
   // output the size histograms
   std::ofstream initial_h;
@@ -369,12 +357,7 @@ int main(int argc, char** argv) {
 
 
   if (opt::verbose && opt::mode != OPT_SIMULATE) {
-    std::cerr << "...done importing";
-#ifndef __APPLE__
-    std::cerr << "  " << SnowTools::displayRuntime(start) << std::endl;;
-#else
-    std::cerr << endl;
-#endif
+    std::cerr << "...done importing" << std::endl;;
   }
 
   // set up the result files
@@ -396,32 +379,26 @@ int main(int argc, char** argv) {
 	  ovl_ovl_seen[i.first] = true;
       }
     }
-  }	
-
+  }
+  
   // check intra unit overlaps
   for (auto& i : all_bed) {
     if (do_intra_overlap(i.first)) {
       std::cerr << "...checking intra overlaps for " << i.first;
       OverlapResult ovl = m->checkIntraUnitOverlaps(&i.second);
       results2 << i.first << "," << ovl.first << "," << ovl.second << ",-1" << std::endl; 
-
-#ifndef __APPLE__
-      std::cerr << "  " << SnowTools::displayRuntime(start) << std::endl;;
-#else
-      std::cerr << endl;
-#endif
-
+      
     }
   }
   
   // Create the queue and consumer (worker) threads
   wqueue<SwapWorkItem*>  queue;
   vector<ConsumerThread<SwapWorkItem>*> threadqueue;
-
+  
   if (all_mats.size() == 0) {
-
+    
     std::cerr << "...running new matrix swaps" << std::endl;
-
+    
     // if num threads too high, set to lower
     opt::numThreads = opt::numThreads > opt::num_matrices ? opt::num_matrices : opt::numThreads;
     
@@ -511,24 +488,7 @@ int main(int argc, char** argv) {
   free(probs[1]);
   free(probs[2]);
   free(probs[3]);
-
-  if (opt::verbose) {
-#ifndef __APPLE__
-    SnowTools::displayRuntime(start);
-    cerr << endl;
-#endif
-  }
-  //if (opt::verbose)
-  //  cerr << "Generating Random Matrices using Self-Loop method" << endl;
-
-  //for (size_t i = 0; i < opt::num_matrices; i++) {
-  //  if (opt::verbose)
-  //    cerr << "...generating matrix " << (i+1) << " of " << opt::num_matrices << endl;
-  //  m->allSwaps();
-  //  all_mats.push_back(m);
-  //}
-  
-  //delete m;
+  return 0;
 }
 
 void parseMatrixOptions(int argc, char** argv) {

@@ -1,5 +1,5 @@
-#ifndef SNOWTOOLS_HISTOGRAM_H__
-#define SNOWTOOLS_HISTOGRAM_H__
+#ifndef GINSENG_HISTOGRAM_H__
+#define GINSENG_HISTOGRAM_H__
 
 #include <iostream>
 #include <cassert>
@@ -8,22 +8,20 @@
 #include <vector>
 #include <fstream>
 
-#include "IntervalTree.h"
+#include "SeqLib/IntervalTree.h"
 
 class Bin;
 
-typedef TInterval<Bin> BinInterval;
-typedef IntervalTree<Bin> BinIntervalTree;
+typedef SeqLib::TInterval<Bin> BinInterval;
+typedef SeqLib::TIntervalTree<Bin> BinIntervalTree;
 typedef std::vector<BinInterval> BinIntervalVector;
 
 typedef uint32_t S;
 
 #define INTERCHR 250000000
 
-namespace SnowTools {
-
-  class Matrix;
-  class Histogram;
+class Matrix;
+class Histogram;
 
 /** Stores one bin in a Histogram
  */
@@ -166,5 +164,4 @@ class Histogram {
 
 };
 
-}
 #endif

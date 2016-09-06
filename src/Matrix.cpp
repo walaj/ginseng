@@ -8,8 +8,8 @@
 #include <fstream>
 #include <algorithm>
 
-#include "SnowTools/gzstream.h"
-#include "SnowTools/SnowUtils.h"
+#include "gzstream.h"
+#include "SeqLib/SeqLibUtils.h"
 
 #include <prng_engine.hpp>
 #include <set>
@@ -84,131 +84,15 @@ std::vector<int> drawFromPower(double x0, double x1, double power, int n_draws) 
   return rpower;
 }
 
-void genRandomSequence(std::string& s, SnowTools::GenomicRegion& gr, int width, faidx_t * findex, SnowTools::GRC& grc) {
-
-  gr.chr = SnowTools::weightedRandom(SnowTools::CHR_CUMSUM_WEIGHT_X);
-  std::string chrstring = SnowTools::CHR_NAME[gr.chr];
-  char * seq = nullptr;
-  int len;
-  // get the first sequence
-  do {
-    if (seq)
-      free(seq);
-    seq = nullptr;
-    s = std::string();
-    gr.pos1 = 1e6 + rand() % (int)(SnowTools::CHR_LEN_VEC[gr.chr] - 2e6);
-    gr.pos2 = gr.pos1 + width;
-    seq = faidx_fetch_seq(findex, const_cast<char*>(chrstring.c_str()), gr.pos1, gr.pos2 - 1, &len);
-    if (seq)
-      s = std::string(seq);
-  } while (!seq || s.find("N") != std::string::npos || grc.findOverlapping(gr));
-
-  }
-
-Matrix::Matrix(size_t ne, size_t nb, size_t ns, double power_law, double frac_inter, const std::string& tid) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid) {
-
-  __initialize_mvec();
-
-  power_law = power_law == 1 ? 1.0001 : power_law;
-
-  int FI = 10000 * frac_inter;
-  int nFI = 0;
-  int nFC = 0;
-  int ttid = 0;
-  
-  for (S i = 0; i < ne; ++i) {
-
-    //if (i % 10000 == 0) 
-    //  std::cerr << "...generating event " << i << " of " << ne <<  std::endl;
-
-    std::string key;
-    SnowTools::GenomicRegion gr1, gr2;
-
-    // generate the first one
-    gr1.chr = SnowTools::weightedRandom(SnowTools::CHR_CUMSUM_WEIGHT_X); 
-    gr1.pos1 = 1e6 + rand() % (int)(SnowTools::CHR_LEN_VEC[gr1.chr] - 2e6);
-    gr1.pos2 = gr1.pos1;
-
-    assert(gr1.pos1 != 0 && gr1.pos2 != 0);
-    // genereate the second one
-
-    // inter chr
-    if (rand() % 10000 <= FI) {
-      ++nFI;
-      do {
-	gr2.chr = SnowTools::weightedRandom(SnowTools::CHR_CUMSUM_WEIGHT_X); 
-	gr2.pos1 = 1e6 + rand() % (int)(SnowTools::CHR_LEN_VEC[gr2.chr] - 2e6);
-	gr2.pos2 = gr2.pos1;
-      } while(gr1.chr == gr2.chr);
-      assert(gr2.pos1 != 0 && gr2.pos2 != 0);
-      // intra chrom
-    } else {
-      ++nFC;
-      do {
-	gr2.chr = gr1.chr;
-	if (rand() % 2 == 0) { // on right 
-	  gr2.pos1 = gr1.pos1 + drawFromPower(MIN_RAR_SIZE, MAX_RAR_SIZE, -power_law); 
-	} else {  // on left
-	  gr2.pos1 = gr1.pos1 - drawFromPower(MIN_RAR_SIZE, MAX_RAR_SIZE, -power_law); 
-	}
-	gr2.pos2 = gr2.pos1;
-
-      } while (gr2.pos1 < 0 || gr2.pos1 > SnowTools::CHR_LEN_VEC[gr2.chr] || std::abs(gr2.pos1 - gr1.pos1) < SANGER_DIST_LIM);
-      assert(gr2.pos1 != 0 && gr2.pos2 != 0);
-    } 
-
-    assert(gr2.pos1 < SnowTools::CHR_LEN_VEC[gr2.chr]);
-    assert(gr1.pos1 < SnowTools::CHR_LEN_VEC[gr1.chr]);
-
-    assert( gr1.pos1 != 0 && gr2.pos1 != 0 && gr1.pos2 != 0 && gr2.pos2 != 0);
-    MatrixValue mv;
-    if (gr1 < gr2) {
-      mv = MatrixValue(gr1, gr2);
-    } else {
-      mv = MatrixValue(gr2, gr1);
-    }
-    mv.id = ttid;
-    ++ttid;
-    addMatrixValue(mv);
-    
-  }
-
-  if ((m_intra+m_inter) == 0) {
-    std::cerr << "Matrix is empty. Try increasing non-zero fraction (-f)" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
-  if (m_verbose)
-    std::cerr << "Matrix created with " <<  m_intra << " intra- and " << m_inter << " inter- events (ratio " << intraRatio() << ")" << std::endl;
-
-  // scramble to make even around the diagonal
-  for (auto& i : m_vec) 
-    for (auto& j : i) 
-      if (rand() % 2) {
-	int idd = j.id;
-	j = MatrixValue(j.c, j.r);
-	j.id = idd;
-      }
-
-  fillQuantileHistograms(m_num_bins);
-
-  m_orig = this;
-}
-
 void Matrix::add() { //const Matrix& m) {
 
   std::set<std::string> hash;
-
-  //std::cerr << "ORIGINAL MATRIX SIZE IS " << m_vec.size() << std::endl;
 
   // hash the existing matrix
   for (auto& i : m_vec) 
     for (auto& j : i)
       hash.insert(std::to_string(j.c.chr) + ":" + std::to_string(j.c.pos1) + 
 		  std::to_string(j.r.chr) + ":" + std::to_string(j.r.pos1));
-  
-
-  //std::cerr << "HASHED MATRIX IS SIZE " << hash.size() << std::endl;
 
   // add the element if not there, otherwise update counter
   for (auto& i : m_vec) {
@@ -221,8 +105,6 @@ void Matrix::add() { //const Matrix& m) {
 	addMatrixValue(j);
     }
   }
-
-  //std::cerr << "NEW MATRIX SIZE IS " << m_vec.size() << std::endl;
 }
   
 void Matrix::fillQuantileHistograms(size_t num_bins) {
@@ -269,46 +151,23 @@ void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm)
     of_anim_hist_small.open(anim_hist_small_file.c_str());
   }
 #endif
-
-#ifdef MV_LITE
-    // hash the original matrix, for later comparison
-    for (auto& i : m_vec) 
-      for (auto& j : i)
-        m_orig_map[std::to_string(j.c_chr) + ":" + std::to_string(j.c) + 
-		   std::to_string(j.r_chr) + ":" + std::to_string(j.r)] = true;
-#else
-    // hash the original matrix, for later comparison
-    for (auto& i : m_vec) 
-      for (auto& j : i)
-	m_orig_map[j.c.toString() + j.r.toString()] = true;
-#endif
-
+  
+  // hash the original matrix, for later comparison
+  for (auto& i : m_vec) 
+    for (auto& j : i)
+      m_orig_map[j.c.PointString() + j.r.PointString()] = true;
+  
   // make the random values
   generateRandomVals();
 
   // do the swaps
-  for (S i = 0; i < m_num_steps; i++) {
+  for (S i = 0; i < m_num_steps; i++) 
     doSwap();
-    //if (m_verbose > 1/* && i % 100 == 0*/) {
-    //  std::cerr << "...step " << i << " of " << m_num_steps << std::endl;
-    //}
-  }
-  // save the matrix
-  //writeBinary();
-  
-  // add to the final list
-  //pthread_mutex_lock(lock);  
-
-  //dummy
-  //allm->push_back(this);
 
   // print it out if need be
-  //size_t mcount = allm->size();
-  //if ((mcount % 1 == 0 && m_verbose) || (mcount == 1 && m_verbose)) {
   std::cerr << "Swapped " << m_id << " matrices -- " << " shared " << ((double)shared()/(double)(m_intra+m_inter)) << " ";
-  std::cerr << SnowTools::displayRuntime(start) << " ";
   std::cerr << printMCMC() << std::endl;
-
+  
 #ifdef ANIMATION
   if (m_anim_step > 0 && m_id == 0) {
     of_anim.close();
@@ -346,14 +205,7 @@ void Matrix::doSwap() {
 
   // make the swapped vals
   MatrixValue ms1, ms2;
-#ifdef MV_LITE
-  if (chr != INTER)
-    MatrixValue::swapIntra(mo1, mo2, ms1, ms2);
-  else
-    MatrixValue::swapInter(mo1, mo2, ms1, ms2);
-#else
   MatrixValue::swapIntra(mo1, mo2, ms1, ms2);
-#endif
 
   S d3 = ms1.distance();
   S d4 = ms2.distance();
@@ -456,15 +308,9 @@ void Matrix::writeGzip(ogzstream * out) const {
   char sep = '\t';
   for (auto& i : m_vec) {
     for (auto& j : i) 
-#ifdef MV_LITE
-      (*out) << j.r_chr << sep << j.r << sep 
-			 << j.c_chr << sep << j.c << sep
-			 << m_id << std::endl;
-#else
       (*out) << j.r.chr << sep << j.r.pos1 << sep 
 			 << j.c.chr << sep << j.c.pos1 << sep
 			 << m_id << std::endl;
-#endif
   }
 }
 
@@ -482,13 +328,6 @@ void Matrix::writeBinary() const {
   fclose(binout);
   */
 }
-
-/*std::ostream& operator<<(std::ostream& out, const Matrix &m) {
-  
-  for (auto& i : m.m) 
-    out << i << std::endl;
-  return (out);
-  }*/
 
 int Matrix::energyShift(S odist1, S odist2, S pdist1, S pdist2) {
 
@@ -522,117 +361,7 @@ int Matrix::energyShift(S odist1, S odist2, S pdist1, S pdist2) {
 
 }
 
-/*Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid, int tmin_size, int tmax_size) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid), min_size(tmin_size), max_size(tmax_size) {
-
-  this->inter_only = inter_only;
-
-  //open the file
-  igzstream inFile(file_list.c_str());
-  if (!inFile) {
-    std::cerr << "Can't read file " << file_list << " for parsing VCF" << std::endl;
-    return;
-  }
-
-  // get count of events
-  size_t num_events = SnowTools::countLines(file_list, "#", "vcf");
-
-  // initialize the m_vec
-  __initialize_mvec();
-
-  // loop through the events and add them
-  std::string fileline, file;
-  size_t file_counter = 0;
-  while (std::getline(inFile, fileline)) {
-
-      while (std::getline(this_file, event_line)) {
-	if (event_line.length() > 0 && event_line.at(0) != '#') {
-	  size_t count = 0;
-	  std::string chr1 = "-1", pos1 = "-1", chr2 = "-1", pos2 = "-1";
-	  std::istringstream iss(event_line);
-	  
-	  // remove non human
-	  if (event_line.find("GL00") != std::string::npos || event_line.find("gi|") != std::string::npos)
-	    continue;
-
-	  // regex to get mate information
-	  while (std::getline(iss, val, '\t')) {
-	    switch(++count) {
-	    case 1: chr1 = val; break;
-	    case 2: pos1 = val; break;
-	    case 5: 
-	      std::regex reg(".*?(\\]|\\[)([0-9A-Z]+):([0-9]+).*?$");	  
-	      std::smatch match;
-	      if (std::regex_search(val, match, reg) ) {
-		chr2 = match[2];
-		pos2 = match[3];
-	      } else {
-		std::cerr << "No match on line "  << val << std::endl;
-	      }
-	      break;
-	    } // end switch
-	  } // end intra-line loop
-	  
-	  // check that we have the data
-	  if (chr1 == "-1" || pos1 == "-1" || chr2 == "-1" || pos2 == "-1") {
-	    std::cerr << "Failed to parse VCF on line " << event_line << std::endl;
-	    continue;
-	  }
-	  
-	  // convert to numbers
-	  try { 
-	    
-	    MatrixValue mv(chr1, pos1, chr2, pos2);
-	    mv.id = good_files;// give unique id
-	    
-	    // check the mask
-	    bool keep = true;
-	    if (mk.size()) {
-	      size_t ovl = 0;
-#ifdef MV_LITE
-	      ovl += mk.findOverlapping(GenomicRegion(mv.r_chr, mv.r, mv.r));	      
-#else
-	      ovl += mk.findOverlapping(mv.r);
-#endif
-	      if (!ovl) {
-#ifdef MV_LITE
-		ovl += mk.findOverlapping(GenomicRegion(mv.c_chr, mv.c, mv.c));	      
-#else
-		ovl += mk.findOverlapping(mv.c);
-#endif
-	      }
-	      if (ovl) {
-		keep = false;
-		++masked;
-	      }
-	    }
-	    
-	    // sanger conditional on distance
-	    if ( mv.r.chr >= 0 && mv.c.chr >= 0 && (mv.r.chr != mv.c.chr || (mv.distance() >= min_size && mv.distance() <= max_size)) && keep && (mv.r < mv.c) && (!inter_only || mv.r.chr != mv.c.chr)) {
-	      
-	      // add the event
-	      addMatrixValue(mv);
-	      
-	      // increment the event counter
-	      ++new_events;
-	    } 
-
-	  } catch(...) {
-	    std::cerr << "********************************" << std::endl;
-	    std::cerr << "********************************" << std::endl;
-	    std::cerr << "Error converting VCF line from std::string to number. Line " << event_line << std::endl;
-	    std::cerr << "chr1 " << chr1 << " chr2 " << chr2 << std::endl;
-	    std::cerr << "********************************" << std::endl;
-	    std::cerr << "********************************" << std::endl;
-	  }
-	} // end ## conditional
-
-
-  }
-
-}
-*/
-
-Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid, int tmin_size, int tmax_size, SnowTools::GRC& black, bool intra_only) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid), m_intra_only(intra_only) {
+Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SeqLib::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid, int tmin_size, int tmax_size, SeqLib::GRC& black, bool intra_only) : m_num_bins(nb), m_num_steps(ns), analysis_id(tid), m_intra_only(intra_only) {
 
   min_size = tmin_size >= 0 ? tmin_size : 0;
   max_size = tmax_size >= 0 ? tmax_size : 0;
@@ -669,7 +398,7 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
     
     ++file_counter;
     size_t new_events = 0;
-    if (!SnowTools::read_access_test(file)) {
+    if (!SeqLib::read_access_test(file)) {
       std::cerr << "VCF File: "  << file << " not readable or does not exist" << std::endl;
       continue;
     }
@@ -737,18 +466,9 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	    bool keep = true;
 	    if (mk.size()) {
 	      size_t ovl = 0;
-#ifdef MV_LITE
-	      ovl += mk.findOverlapping(GenomicRegion(mv.r_chr, mv.r, mv.r));	      
-#else
-	      ovl += mk.findOverlapping(mv.r);
-#endif
-	      if (!ovl) {
-#ifdef MV_LITE
-		ovl += mk.findOverlapping(GenomicRegion(mv.c_chr, mv.c, mv.c));	      
-#else
-		ovl += mk.findOverlapping(mv.c);
-#endif
-	      }
+	      ovl += mk.CountOverlaps(GenomicRegion(mv.r));	      
+	      if (!ovl) 
+		ovl += mk.CountOverlaps(mv.c);
 	      if (ovl) {
 		keep = false;
 		++masked;
@@ -756,7 +476,7 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
 	    }
 	    
 	    // sanger conditional on distance
-	    bool blacklist_pass = !black.findOverlapping(mv.r) && !black.findOverlapping(mv.c);
+	    bool blacklist_pass = !black.CountOverlaps(mv.r) && !black.CountOverlaps(mv.c);
 	    if (blacklist_pass && mv.r.chr >= 0 && mv.c.chr >= 0 && (mv.r.chr != mv.c.chr || (mv.distance() >= (int)min_size && mv.distance() <= (int)max_size)) && keep && (mv.r < mv.c) && (!inter_only || mv.r.chr != mv.c.chr) && (!m_intra_only || (m_intra_only && mv.r.chr == mv.c.chr))) {
 	      
 	      // add the event
@@ -808,13 +528,9 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
   for (auto& i : m_vec) 
     for (auto& j : i) 
       if (rand() % 2) {
-#ifdef MV_LITE
-	j = MatrixValue(j.c_chr, j.c, j.r_chr, j.r);
-#else	
 	int idd = j.id;
 	j = MatrixValue(j.c, j.r);
 	j.id = idd;
-#endif
       }
 
   // fill event histograms
@@ -823,23 +539,6 @@ Matrix::Matrix(const std::string &file_list, size_t nb, size_t ns, SnowTools::GR
   m_orig = this;
 
 }
-
-
-/*S Matrix::energy() {
-  S en = 0;
-  for (size_t i = 0; i < hist.numBins(); i++)
-    en += abs(hist_swap.binCount(i) - hist.binCount(i));
-  return en;
-}*/
-
-//std::string MatrixValue::key() const {
-//  return (std::to_string(r.chr) + ":" + std::to_string(r.pos1) + "-" + std::to_string(c.chr) + ":" + std::to_string(c.pos1));
-//}
-
-/*std::ostream& operator <<(std::ostream &out, const MatrixValue &m) { 
-  out << m.key() << " - " << m.distance();
-  return out;
-  }*/
 
 void MatrixValue::swapIntra(const MatrixValue &m1, const MatrixValue &m2, MatrixValue &n1, MatrixValue &n2) {
 
@@ -857,13 +556,6 @@ void MatrixValue::swapInter(const MatrixValue &m1, const MatrixValue &m2, Matrix
   n2.r = m2.r;
   n2.c = m1.c;
 
-#ifdef MV_LITE
-  n1.r_chr = m1.r_chr;
-  n1.c_chr = m2.c_chr;
-  n2.r_chr = m2.r_chr;
-  n2.c_chr = m1.c_chr;
-#endif
-
 }
 
 MatrixValue::MatrixValue(int chr1, int pos1, int chr2, int pos2) {
@@ -873,47 +565,14 @@ MatrixValue::MatrixValue(int chr1, int pos1, int chr2, int pos2) {
 
 MatrixValue::MatrixValue(const std::string &chr1, const std::string &pos1, const std::string &chr2, const std::string &pos2) {
   
-#ifdef MV_LITE
-  r_chr = GenomicRegion::chrToNumber(chr1);
-  c_chr = GenomicRegion::chrToNumber(chr2);
-  try {
-    r = std::stoi(pos1);
-    c = std::stoi(pos2);
-  } catch (...) {
-    std::cerr << "stoi failed on MatrixValue constructor on one of " << pos1 << " or " << pos2 << std::endl;
-  }
-#else
-  r = GenomicRegion(chr1, pos1, pos1);
-  c = GenomicRegion(chr2, pos2, pos2);
-#endif
+  r = GenomicRegion(chr1, pos1, pos1, SeqLib::BamHeader());
+  c = GenomicRegion(chr2, pos2, pos2, SeqLib::BamHeader());
   
 }
 
 void Matrix::addMatrixValue(const MatrixValue &mv) {
   
   MatrixValue mr = mv;
-
-#ifdef MV_LITE
-  if ( (mv.c_chr < mv.r_chr) || ( (mv.c_chr == mv.r_chr)  && (mv.c < mv.r) ) )
-    {
-      mr.c = mv.r;
-      mr.c_chr = mv.r_chr;
-      mr.r = mv.c;
-      mr.r_chr = mv.c_chr;
-    }
-  
-  // intra
-  if (mv.r_chr == mv.c_chr) {
-    ++m_intra;
-    m_vec[mr.r_chr].push_back(mr);
-  } else {
-    ++m_inter;
-    m_vec[INTER].push_back(mr);
-    assert(m_vec[INTER].size() == m_inter);
-  }
-  
-
-#else
 
   // put in order with row smaller
   if (mv.c < mv.r) {
@@ -932,7 +591,6 @@ void Matrix::addMatrixValue(const MatrixValue &mv) {
     m_vec[INTER].push_back(mr);
     assert(m_vec[INTER].size() == m_inter);
   }
-#endif
 }
 
 void Matrix::generateRandomVals() {
@@ -974,17 +632,10 @@ size_t Matrix::shared() {
 
   size_t count = 0;
   
-#ifdef MV_LITE
-  for (auto& i : m_vec)
-    for (auto& j : i)
-      count += m_orig_map.count(std::to_string(j.c_chr) + ":" + std::to_string(j.c) + 
-			       std::to_string(j.r_chr) + ":" + std::to_string(j.r));
-#else
   // run through swapped matrix and query hash from original
   for (auto& i : m_vec)
     for (auto& j : i)
-      count += m_orig_map.count(j.c.toString() + j.r.toString());
-#endif
+      count += m_orig_map.count(j.c.PointString() + j.r.PointString());
 
   return count;
 
@@ -992,7 +643,7 @@ size_t Matrix::shared() {
 
 std::ostream& operator<<(std::ostream &out, const MCMCData &m) 
 {
-    out << "   Swap tried: " << m.swap_tried << " accepted " << m.accepted << " (" << SnowTools::percentCalc<size_t>(m.accepted, m.swap_tried) << "%)";
+    out << "   Swap tried: " << m.swap_tried << " accepted " << m.accepted << " (" << SeqLib::percentCalc<size_t>(m.accepted, m.swap_tried) << "%)";
     return out;
 }
 
@@ -1006,10 +657,7 @@ void Matrix::dedupe() {
 
   size_t intra = 0;
   size_t inter = 0;
-  //std::unordered_map<int, MVec> new_map;
   std::vector<MVec> new_vec;
-
-  
 
   for (auto& i : m_vec) {
 
@@ -1033,7 +681,7 @@ void Matrix::dedupe() {
   m_inter = inter;
 }
 
-OverlapResult Matrix::checkIntraUnitOverlaps(SnowTools::GRC * grvA) {
+OverlapResult Matrix::checkIntraUnitOverlaps(SeqLib::GRC * grvA) {
 
   if (!grvA->size() || inter_only)
     return OverlapResult(0,m_intra+m_inter);
@@ -1044,7 +692,7 @@ OverlapResult Matrix::checkIntraUnitOverlaps(SnowTools::GRC * grvA) {
   // faster way to do it
   for (auto& i : m_vec) {
     for (auto& j : i) {
-      if (grvA->overlapSameBin(j.r, j.c))
+      if (grvA->OverlapSameInterval(j.r, j.c))
 	++overlap;
       else 
 	++no_overlap;
@@ -1069,14 +717,14 @@ OverlapResult Matrix::checkIntraUnitOverlaps(SnowTools::GRC * grvA) {
 	++ii;
       }
     }
-    grc1.createTreeMap(); // sorts it, so query order is messed up
-    grc2.createTreeMap();
+    grc1.CreateTreeMap(); // sorts it, so query order is messed up
+    grc2.CreateTreeMap();
     
   }
 
   std::vector<int32_t> sub1, que1, sub2, que2;
-  grvA->findOverlaps(grc1, que1, sub1, true);
-  grvA->findOverlaps(grc2, que2, sub2, true);
+  grvA->FindOverlaps(grc1, que1, sub1, true);
+  grvA->FindOverlaps(grc2, que2, sub2, true);
 
   // make subject to query hash
   std::unordered_map<size_t,size_t> sub1_to_que1;
@@ -1097,49 +745,11 @@ OverlapResult Matrix::checkIntraUnitOverlaps(SnowTools::GRC * grvA) {
     }
   }
 
-  /*
-
-  for (auto& i : m_vec) {
-    for (auto& j : i) {
-      SnowTools::GRC grc1(j.r);
-      SnowTools::GRC grc2(j.c);
-      grc1.createTreeMap();
-      grc2.createTreeMap();
-      std::vector<int32_t> sub1, que1, sub2, que2;
-      grvA->findOverlaps(grc1, que1, sub1, true);
-      grvA->findOverlaps(grc2, que2, sub2, true);
-      //std::cerr << " checking overlap of  " <<  j.r << " sub1 " << sub1.size() << " que1 " << que1.size() << std::endl;
-      //std::cerr << " checking overlap of  " <<  j.c << " sub2 " << sub2.size() << " que2 " << que2.size() << std::endl;
-      //if (que1.size() && que2.size())
-      //	std::cerr << "...... " << que1[0] << " _ " << que2[0] << std::endl;
-      if (que1.size() && que2.size() && que1[0] == que2[0]) {
-	++overlap;
-	//std::cerr << "Intra overlap " << j.r << " - " << j.c << " ----- " << grvA->at(sub1[0]) << std::endl;
-      } else {
-	++no_overlap;
-      }
-      
-    }
-  }
-  */
-
   return OverlapResult(overlap, no_overlap);
 
 }
-/*
-void Matrix::projec_to_finite() {
 
-  for (auto& i : m_vec) {
-    for (auto& j : i) {
-      double rr = SnowTools::CHR_LEN_VEC[j.r.chr] + j.r.pos1;
-      double cc = SnowTools::CHR_LEN_VEC[j.c.chr] + j.c.pos1;
-      int rrr = std::floor(((double)j.r.pos1) * )
-    }
-  }
-  
-  }*/
-
-OverlapResult Matrix::checkOverlaps(SnowTools::GRC * grvA, SnowTools::GRC * grvB) {
+OverlapResult Matrix::checkOverlaps(SeqLib::GRC * grvA, SeqLib::GRC * grvB) {
 
   if (!grvA->size() || !grvB->size())
     return OverlapResult(0,m_intra+m_inter);
@@ -1150,18 +760,18 @@ OverlapResult Matrix::checkOverlaps(SnowTools::GRC * grvA, SnowTools::GRC * grvB
   for (auto& i : m_vec)
     for (auto& j : i) {
 
-      if (grvA->findOverlapping(j.r) && grvB->findOverlapping(j.c)) {
+      if (grvA->CountOverlaps(j.r) && grvB->CountOverlaps(j.c)) {
 	++overlap;
-	if (grvA->size() == grvB->size() && grvA->overlapSameBin(j.r, j.c)) { // take it back if same bin for same event
+	if (grvA->size() == grvB->size() && grvA->OverlapSameInterval(j.r, j.c)) { // take it back if same bin for same event
 	  --overlap;
 	  ++no_overlap;
 	}
 	continue;
       }
       
-      if (grvA->findOverlapping(j.c) && grvB->findOverlapping(j.r)) {
+      if (grvA->CountOverlaps(j.c) && grvB->CountOverlaps(j.r)) {
 	++overlap;
-	if (grvA->size() == grvB->size() && grvA->overlapSameBin(j.r, j.c)) { // take it back if same bin for same event
+	if (grvA->size() == grvB->size() && grvA->OverlapSameInterval(j.r, j.c)) { // take it back if same bin for same event
 	  ++no_overlap;
 	  --overlap;
 	}

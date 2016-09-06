@@ -8,18 +8,19 @@
 #include <unordered_map>
 #include <fstream>
 
-#include "SnowTools/Histogram.h"
-#include "SnowTools/GenomicRegion.h"
-#include "SnowTools/GenomicRegionCollection.h"
+#include "gzstream.h"
+#include "Histogram.h"
+#include "SeqLib/GenomicRegion.h"
+#include "SeqLib/GenomicRegionCollection.h"
 #include "Squares.h"
 
 typedef uint32_t S;    
 typedef std::pair<size_t, size_t> OverlapResult;
 
-class GR : public SnowTools::GenomicRegion {
+class GR : public SeqLib::GenomicRegion {
  public:
- GR() : SnowTools::GenomicRegion() {}
- GR(const SnowTools::GenomicRegion& gr, int ii) : SnowTools::GenomicRegion(gr), id(ii) {}
+ GR() : SeqLib::GenomicRegion() {}
+ GR(const SeqLib::GenomicRegion& gr, int ii) : SeqLib::GenomicRegion(gr), id(ii) {}
   int id;
 };
 
@@ -35,9 +36,8 @@ inline bool do_intra_overlap(const std::string& name) {
 }
 
 // Should we use lite MatrixValue code or GenomicRegion code?
-//#define MV_LITE 1
 
-using SnowTools::GenomicRegion;
+using SeqLib::GenomicRegion;
 
 /** Store basic information about the MCMC run
  */
@@ -113,7 +113,7 @@ class MatrixValue {
 	return INTERCHR;
 #else
 
-      int dist = r.distanceBetweenStarts(c);
+      int dist = r.DistanceBetweenStarts(c);
       if (dist < 0) {
 	//assert(r.chr != c.chr);
 	return INTERCHR;
@@ -157,8 +157,8 @@ class Matrix {
   // doSwap
 
   // histograms
-  SnowTools::Histogram hist; // original histogram
-  SnowTools::Histogram hist_swap; // histogram after N swaps 
+  Histogram hist; // original histogram
+  Histogram hist_swap; // histogram after N swaps 
 
   size_t id = 0;
 
@@ -180,11 +180,11 @@ class Matrix {
    * @param inter_only only load interchromosomal events and only do inter chr
    */
   Matrix(const std::string &file_list, size_t nb, size_t ns, 
-	 SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid,
-	 int tmin_size, int tmax_size, SnowTools::GRC& black, bool intra_only);
+	 SeqLib::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid,
+	 int tmin_size, int tmax_size, SeqLib::GRC& black, bool intra_only);
 
   Matrix(const std::string &file_list, size_t nb, size_t ns, 
-	 SnowTools::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid,
+	 SeqLib::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid,
 	 int tmin_size, int tmax_size, bool dummy);
 
   Matrix() {}
@@ -312,9 +312,9 @@ class Matrix {
 
   /** Check for events that span two GenomicRegionVector objects
    */
-  OverlapResult checkOverlaps(SnowTools::GRC* grvA, SnowTools::GRC * grvB);
+  OverlapResult checkOverlaps(SeqLib::GRC* grvA, SeqLib::GRC * grvB);
 
-  OverlapResult checkIntraUnitOverlaps(SnowTools::GRC * grvA);
+  OverlapResult checkIntraUnitOverlaps(SeqLib::GRC * grvA);
 
   //double * temps; // pre-compute all probabilites at each temp, since same for every matrix
   uint16_t** probs; // an array holding the arrays of probabilites for each shift 
@@ -348,8 +348,8 @@ class Matrix {
     size_t m_inter = 0;
     size_t m_intra = 0;
 
-    SnowTools::GenomicRegionCollection<GR> grc1;
-    SnowTools::GenomicRegionCollection<GR> grc2; // hold treed genomic region collection of events for doing findOverlaps in checkIntraUnitOverlaps
+    SeqLib::GenomicRegionCollection<GR> grc1;
+    SeqLib::GenomicRegionCollection<GR> grc2; // hold treed genomic region collection of events for doing findOverlaps in checkIntraUnitOverlaps
 
     uint32_t * rand_rows;
     uint32_t * rand_cols;
@@ -368,7 +368,7 @@ class Matrix {
     // map to store sparse matrix entries, per chrom
     std::vector<MVec> m_vec;
 
-    SnowTools::Histogram m_hist_smallbins;
+    Histogram m_hist_smallbins;
 
     bool m_intra_only = false;
     

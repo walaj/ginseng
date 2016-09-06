@@ -33,9 +33,8 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 subdir = .
 DIST_COMMON = $(am__configure_deps) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in \
-	$(top_srcdir)/SnowTools/htslib/Makefile.in \
-	$(top_srcdir)/configure depcomp install-sh missing
+	$(srcdir)/Makefile.in $(top_srcdir)/configure depcomp \
+	install-sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -43,7 +42,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_CLEAN_FILES = SnowTools/htslib/Makefile
+CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
 DIST_SOURCES =
@@ -107,12 +106,12 @@ AUTOMAKE = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run automake-1.1
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
-CFLAGS = -Ofast
-CPPFLAGS =  -I/xchip/gistic/Jeremiah/software/boost_1_61_0
+CFLAGS = 
+CPPFLAGS =  
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
-CXXFLAGS = -O3
+CXXFLAGS = 
 CYGPATH_W = echo
 DEFS = -DPACKAGE_NAME=\"swap\" -DPACKAGE_TARNAME=\"swap\" -DPACKAGE_VERSION=\"0.0\" -DPACKAGE_STRING=\"swap\ 0.0\" -DPACKAGE_BUGREPORT=\"jwala@broadinstitute.org\" -DPACKAGE=\"swap\" -DVERSION=\"0.0\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_CLOCK_GETTIME=1 -DHAVE_PTHREAD=1
 DEPDIR = .deps
@@ -159,7 +158,7 @@ am__quote =
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
-boost_lib = /xchip/gistic/Jeremiah/software/boost_1_61_0/stage/lib
+boost_lib = 
 build_alias = 
 builddir = .
 datadir = ${datarootdir}
@@ -191,7 +190,7 @@ target_alias =
 top_build_prefix = 
 top_builddir = .
 top_srcdir = .
-SUBDIRS = SnowTools/htslib SnowTools/src src
+SUBDIRS = SeqLib/htslib SeqLib/src src
 all: all-recursive
 
 .SUFFIXES:
@@ -229,8 +228,6 @@ $(top_srcdir)/configure: # $(am__configure_deps)
 $(ACLOCAL_M4): # $(am__aclocal_m4_deps)
 	$(am__cd) $(srcdir) && $(ACLOCAL) $(ACLOCAL_AMFLAGS)
 $(am__aclocal_m4_deps):
-SnowTools/htslib/Makefile: $(top_builddir)/config.status $(top_srcdir)/SnowTools/htslib/Makefile.in
-	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run `make' without going through this Makefile.

@@ -2395,8 +2395,6 @@ fi
   MAINT=$MAINTAINER_MODE_TRUE
 
 
-##AC_CONFIG_HEADER([config.h])
-##m4_include([m4/m4_ax_openmp.m4])
 
 # Checks for programs.
 ac_ext=cpp
@@ -5151,7 +5149,6 @@ fi
 
 
 
-
 # Check whether --with-boost was given.
 if test "${with_boost+set}" = set; then
   withval=$with_boost;
@@ -5209,9 +5206,9 @@ fi
 # Set compiler flags.
 AM_CXXFLAGS="-Wall -Wextra $fail_on_warning -Wno-unknown-pragmas -std=c++11 -g"
 
-CXXFLAGS="-O3"
+CXXFLAGS=""
 
-CFLAGS="-Ofast"
+CFLAGS=""
 
 CPPFLAGS="$CPPFLAGS $boost_include"
 
@@ -5221,7 +5218,7 @@ LDFLAGS="$LDFLAGS"
 LIBS="$LIBS"
 
 
-ac_config_files="$ac_config_files Makefile SnowTools/htslib/Makefile SnowTools/src/Makefile src/Makefile"
+ac_config_files="$ac_config_files Makefile SeqLib/src/Makefile src/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -5882,8 +5879,7 @@ do
   case $ac_config_target in
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
-    "SnowTools/htslib/Makefile") CONFIG_FILES="$CONFIG_FILES SnowTools/htslib/Makefile" ;;
-    "SnowTools/src/Makefile") CONFIG_FILES="$CONFIG_FILES SnowTools/src/Makefile" ;;
+    "SeqLib/src/Makefile") CONFIG_FILES="$CONFIG_FILES SeqLib/src/Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
 
   *) { { $as_echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5

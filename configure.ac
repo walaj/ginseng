@@ -1,13 +1,8 @@
-
-#                                               -*- Autoconf -*-
-# Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59) ## specificy version of autoconf
 AC_INIT(swap, 0.0, jwala@broadinstitute.org)
 AM_INIT_AUTOMAKE(foreign)
 AC_CONFIG_SRCDIR([src/swap.cpp]) ## just checks that this file existss
 AM_MAINTAINER_MODE([disable])
-##AC_CONFIG_HEADER([config.h])
-##m4_include([m4/m4_ax_openmp.m4])
 
 # Checks for programs.
 AC_PROG_CXX ## test for cpp compiler
@@ -23,7 +18,6 @@ AC_CHECK_HEADER([zlib.h])
 AC_SEARCH_LIBS([gzopen],[z],,[AC_MSG_ERROR([libz not found, please install zlib (http://www.zlib.net/)])])
 AC_SEARCH_LIBS([clock_gettime], [rt], [AC_DEFINE([HAVE_CLOCK_GETTIME], [1], [clock_getttime found])], )
 AC_SEARCH_LIBS([pthread_create], [pthread], [AC_DEFINE([HAVE_PTHREAD], [1], [pthread found])], )
-
 
 AC_ARG_WITH(boost, AS_HELP_STRING([--with-boost=PATH],
 	[specify directory containing the boost library)]))
@@ -48,16 +42,15 @@ fi
 
 # Set compiler flags.
 AC_SUBST(AM_CXXFLAGS, "-Wall -Wextra $fail_on_warning -Wno-unknown-pragmas -std=c++11 -g")
-AC_SUBST(CXXFLAGS, "-O3")
-AC_SUBST(CFLAGS, "-Ofast")
+AC_SUBST(CXXFLAGS, "")
+AC_SUBST(CFLAGS, "")
 AC_SUBST(CPPFLAGS, "$CPPFLAGS $boost_include")
 AC_SUBST(LDFLAGS, "$LDFLAGS")
 
 AC_SUBST(LIBS, "$LIBS")
 
 AC_CONFIG_FILES([Makefile
-		 SnowTools/htslib/Makefile
-	         SnowTools/src/Makefile
+		 SeqLib/src/Makefile
 		 src/Makefile])
 
 AC_OUTPUT

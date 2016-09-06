@@ -1,1 +1,1 @@
-SUBDIRS = SnowTools/htslib SnowTools/src src
+SUBDIRS = SeqLib/htslib SeqLib/src src
