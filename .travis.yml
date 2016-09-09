@@ -32,7 +32,7 @@ install:
 - .travis.scripts/travis-install.sh
 
 script: 
-- ./configure --with-boost=${BOOST_ROOT} && make
+- ./configure && make apophenia && make && make install
 
 branches: 
   only: 
