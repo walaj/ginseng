@@ -97,12 +97,12 @@ DIST_ARCHIVES = $(distdir).tar.gz
 GZIP_ENV = --best
 distuninstallcheck_listfiles = find . -type f -print
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run aclocal-1.11
-AMTAR = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run tar
+ACLOCAL = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run aclocal-1.11
+AMTAR = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run tar
 AM_CXXFLAGS = -Wall -Wextra  -Wno-unknown-pragmas -std=c++11 -g
-AUTOCONF = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run autoconf
-AUTOHEADER = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run autoheader
-AUTOMAKE = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run automake-1.11
+AUTOCONF = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run autoconf
+AUTOHEADER = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run autoheader
+AUTOMAKE = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run automake-1.11
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
@@ -131,7 +131,7 @@ LIBOBJS =
 LIBS = -lpthread -lrt -lz 
 LTLIBOBJS = 
 MAINT = #
-MAKEINFO = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run makeinfo
+MAKEINFO = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 OBJEXT = o
 PACKAGE = swap
@@ -146,10 +146,10 @@ SET_MAKE =
 SHELL = /bin/sh
 STRIP = 
 VERSION = 0.0
-abs_builddir = /xchip/gistic/Jeremiah/GIT/SwapSV
-abs_srcdir = /xchip/gistic/Jeremiah/GIT/SwapSV
-abs_top_builddir = /xchip/gistic/Jeremiah/GIT/SwapSV
-abs_top_srcdir = /xchip/gistic/Jeremiah/GIT/SwapSV
+abs_builddir = /xchip/gistic/Jeremiah/GIT/ginseng
+abs_srcdir = /xchip/gistic/Jeremiah/GIT/ginseng
+abs_top_builddir = /xchip/gistic/Jeremiah/GIT/ginseng
+abs_top_srcdir = /xchip/gistic/Jeremiah/GIT/ginseng
 ac_ct_CC = gcc
 ac_ct_CXX = g++
 am__include = include
@@ -170,7 +170,7 @@ host_alias =
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/install-sh
+install_sh = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -544,7 +544,6 @@ check: check-recursive
 all-am: Makefile
 installdirs: installdirs-recursive
 installdirs-am:
-install: install-recursive
 install-exec: install-exec-recursive
 install-data: install-data-recursive
 uninstall: uninstall-recursive
@@ -656,6 +655,12 @@ uninstall-am:
 	maintainer-clean-generic mostlyclean mostlyclean-generic pdf \
 	pdf-am ps ps-am tags tags-recursive uninstall uninstall-am
 
+
+apophenia:
+	cd apophenia-pkg && ./configure --prefix=`pwd` && make && make install
+
+install:
+	mkdir -p bin && mv src/ginseng bin
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

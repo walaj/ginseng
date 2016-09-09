@@ -28,6 +28,12 @@ class Fractions : public SeqLib::GenomicRegionCollection<FracRegion> {
 
  public:
   
+  // make an empty one
+ Fractions() : SeqLib::GenomicRegionCollection<FracRegion>() {}
+
+  // construct tiled across genome
+  Fractions(int w, int o, const SeqLib::HeaderSequenceVector& v) : SeqLib::GenomicRegionCollection<FracRegion>(w, o, v) {}
+
   void readFromBed(const std::string& file, const SeqLib::BamHeader& h);
 
  private:

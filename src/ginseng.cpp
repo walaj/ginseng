@@ -2,6 +2,9 @@
 #include "swap.h"
 #include "fishhook.h"
 
+//debug
+#include "Model.h"
+
 static const char *GINSENG_USAGE_MESSAGE =
 "Program: ginseng \n"
 "Contact: Jeremiah Wala [ jwala@broadinstitute.org ] and Marcin Imielinski [ mimielinski@nygenome.org ]\n"
@@ -13,6 +16,10 @@ static const char *GINSENG_USAGE_MESSAGE =
 "\nReport bugs to jwala@broadinstitute.org \n\n";
 
 int main(int argc, char** argv) {
+
+  //debug
+  test_apo();
+  return 0;
 
   if (argc <= 1) {
     std::cerr << GINSENG_USAGE_MESSAGE;

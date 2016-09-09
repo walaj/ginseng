@@ -32,7 +32,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = swap$(EXEEXT)
+bin_PROGRAMS = ginseng$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -44,15 +44,17 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_swap_OBJECTS = swap-gzstream.$(OBJEXT) swap-ginseng.$(OBJEXT) \
-	swap-swap.$(OBJEXT) swap-Histogram.$(OBJEXT) \
-	swap-Matrix.$(OBJEXT) swap-Fractions.$(OBJEXT) \
-	swap-FishHookInterval.$(OBJEXT) swap-sim.$(OBJEXT) \
-	swap-fishhook.$(OBJEXT)
-swap_OBJECTS = $(am_swap_OBJECTS)
-swap_DEPENDENCIES = $(top_builddir)/SeqLib/src/libseqlib.a \
-	$(top_builddir)/SeqLib/htslib/libhts.a
-swap_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(swap_LDFLAGS) \
+am_ginseng_OBJECTS = ginseng-gzstream.$(OBJEXT) \
+	ginseng-ginseng.$(OBJEXT) ginseng-swap.$(OBJEXT) \
+	ginseng-Histogram.$(OBJEXT) ginseng-Matrix.$(OBJEXT) \
+	ginseng-Fractions.$(OBJEXT) ginseng-FishHookInterval.$(OBJEXT) \
+	ginseng-sim.$(OBJEXT) ginseng-fishhook.$(OBJEXT) \
+	ginseng-Model.$(OBJEXT)
+ginseng_OBJECTS = $(am_ginseng_OBJECTS)
+ginseng_DEPENDENCIES = $(top_builddir)/SeqLib/src/libseqlib.a \
+	$(top_builddir)/SeqLib/htslib/libhts.a \
+	$(top_builddir)/apophenia-pkg/lib/libapophenia.a
+ginseng_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(ginseng_LDFLAGS) \
 	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -67,17 +69,17 @@ COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(swap_SOURCES)
-DIST_SOURCES = $(swap_SOURCES)
+SOURCES = $(ginseng_SOURCES)
+DIST_SOURCES = $(ginseng_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run aclocal-1.11
-AMTAR = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run tar
+ACLOCAL = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run aclocal-1.11
+AMTAR = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run tar
 AM_CXXFLAGS = -Wall -Wextra  -Wno-unknown-pragmas -std=c++11 -g
-AUTOCONF = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run autoconf
-AUTOHEADER = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run autoheader
-AUTOMAKE = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run automake-1.11
+AUTOCONF = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run autoconf
+AUTOHEADER = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run autoheader
+AUTOMAKE = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run automake-1.11
 AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
@@ -106,7 +108,7 @@ LIBOBJS =
 LIBS = -lpthread -lrt -lz 
 LTLIBOBJS = 
 MAINT = #
-MAKEINFO = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/missing --run makeinfo
+MAKEINFO = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/missing --run makeinfo
 MKDIR_P = /bin/mkdir -p
 OBJEXT = o
 PACKAGE = swap
@@ -121,10 +123,10 @@ SET_MAKE =
 SHELL = /bin/sh
 STRIP = 
 VERSION = 0.0
-abs_builddir = /xchip/gistic/Jeremiah/GIT/SwapSV/src
-abs_srcdir = /xchip/gistic/Jeremiah/GIT/SwapSV/src
-abs_top_builddir = /xchip/gistic/Jeremiah/GIT/SwapSV
-abs_top_srcdir = /xchip/gistic/Jeremiah/GIT/SwapSV
+abs_builddir = /xchip/gistic/Jeremiah/GIT/ginseng/src
+abs_srcdir = /xchip/gistic/Jeremiah/GIT/ginseng/src
+abs_top_builddir = /xchip/gistic/Jeremiah/GIT/ginseng
+abs_top_srcdir = /xchip/gistic/Jeremiah/GIT/ginseng
 ac_ct_CC = gcc
 ac_ct_CXX = g++
 am__include = include
@@ -145,7 +147,7 @@ host_alias =
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /xchip/gistic/Jeremiah/GIT/SwapSV/install-sh
+install_sh = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -165,13 +167,20 @@ target_alias =
 top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
-swap_CPPFLAGS = \
+ginseng_CPPFLAGS = \
 	-I$(top_srcdir)/SeqLib \
-	-I$(top_srcdir)/SeqLib/htslib 
+	-I$(top_srcdir)/SeqLib/htslib \
+	-I$(top_srcdir)/apophenia-pkg/include \
+	-I/xchip/gistic/Jeremiah/software/gsl-2.2.1/include 
 
-swap_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/htslib/libhts.a
-swap_LDFLAGS = -pthread -std=c++11
-swap_SOURCES = gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp prng_engine.hpp Fractions.cpp FishHookInterval.cpp sim.cpp fishhook.cpp
+ginseng_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/htslib/libhts.a \
+		$(top_builddir)/apophenia-pkg/lib/libapophenia.a -lgsl -lgslcblas -lsqlite3
+
+ginseng_LDFLAGS = -pthread -std=c++11 -L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -fopenmp
+ginseng_SOURCES = gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp \
+		prng_engine.hpp Fractions.cpp FishHookInterval.cpp sim.cpp fishhook.cpp \
+		Model.cpp
+
 all: all-am
 
 .SUFFIXES:
@@ -243,9 +252,9 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-swap$(EXEEXT): $(swap_OBJECTS) $(swap_DEPENDENCIES) 
-	@rm -f swap$(EXEEXT)
-	$(swap_LINK) $(swap_OBJECTS) $(swap_LDADD) $(LIBS)
+ginseng$(EXEEXT): $(ginseng_OBJECTS) $(ginseng_DEPENDENCIES) 
+	@rm -f ginseng$(EXEEXT)
+	$(ginseng_LINK) $(ginseng_OBJECTS) $(ginseng_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -253,15 +262,16 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-include ./$(DEPDIR)/swap-FishHookInterval.Po
-include ./$(DEPDIR)/swap-Fractions.Po
-include ./$(DEPDIR)/swap-Histogram.Po
-include ./$(DEPDIR)/swap-Matrix.Po
-include ./$(DEPDIR)/swap-fishhook.Po
-include ./$(DEPDIR)/swap-ginseng.Po
-include ./$(DEPDIR)/swap-gzstream.Po
-include ./$(DEPDIR)/swap-sim.Po
-include ./$(DEPDIR)/swap-swap.Po
+include ./$(DEPDIR)/ginseng-FishHookInterval.Po
+include ./$(DEPDIR)/ginseng-Fractions.Po
+include ./$(DEPDIR)/ginseng-Histogram.Po
+include ./$(DEPDIR)/ginseng-Matrix.Po
+include ./$(DEPDIR)/ginseng-Model.Po
+include ./$(DEPDIR)/ginseng-fishhook.Po
+include ./$(DEPDIR)/ginseng-ginseng.Po
+include ./$(DEPDIR)/ginseng-gzstream.Po
+include ./$(DEPDIR)/ginseng-sim.Po
+include ./$(DEPDIR)/ginseng-swap.Po
 
 .C.o:
 	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -277,131 +287,145 @@ include ./$(DEPDIR)/swap-swap.Po
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
 
-swap-gzstream.o: gzstream.C
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-gzstream.o -MD -MP -MF $(DEPDIR)/swap-gzstream.Tpo -c -o swap-gzstream.o `test -f 'gzstream.C' || echo '$(srcdir)/'`gzstream.C
-	$(am__mv) $(DEPDIR)/swap-gzstream.Tpo $(DEPDIR)/swap-gzstream.Po
-#	source='gzstream.C' object='swap-gzstream.o' libtool=no \
+ginseng-gzstream.o: gzstream.C
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-gzstream.o -MD -MP -MF $(DEPDIR)/ginseng-gzstream.Tpo -c -o ginseng-gzstream.o `test -f 'gzstream.C' || echo '$(srcdir)/'`gzstream.C
+	$(am__mv) $(DEPDIR)/ginseng-gzstream.Tpo $(DEPDIR)/ginseng-gzstream.Po
+#	source='gzstream.C' object='ginseng-gzstream.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-gzstream.o `test -f 'gzstream.C' || echo '$(srcdir)/'`gzstream.C
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-gzstream.o `test -f 'gzstream.C' || echo '$(srcdir)/'`gzstream.C
 
-swap-gzstream.obj: gzstream.C
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-gzstream.obj -MD -MP -MF $(DEPDIR)/swap-gzstream.Tpo -c -o swap-gzstream.obj `if test -f 'gzstream.C'; then $(CYGPATH_W) 'gzstream.C'; else $(CYGPATH_W) '$(srcdir)/gzstream.C'; fi`
-	$(am__mv) $(DEPDIR)/swap-gzstream.Tpo $(DEPDIR)/swap-gzstream.Po
-#	source='gzstream.C' object='swap-gzstream.obj' libtool=no \
+ginseng-gzstream.obj: gzstream.C
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-gzstream.obj -MD -MP -MF $(DEPDIR)/ginseng-gzstream.Tpo -c -o ginseng-gzstream.obj `if test -f 'gzstream.C'; then $(CYGPATH_W) 'gzstream.C'; else $(CYGPATH_W) '$(srcdir)/gzstream.C'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-gzstream.Tpo $(DEPDIR)/ginseng-gzstream.Po
+#	source='gzstream.C' object='ginseng-gzstream.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-gzstream.obj `if test -f 'gzstream.C'; then $(CYGPATH_W) 'gzstream.C'; else $(CYGPATH_W) '$(srcdir)/gzstream.C'; fi`
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-gzstream.obj `if test -f 'gzstream.C'; then $(CYGPATH_W) 'gzstream.C'; else $(CYGPATH_W) '$(srcdir)/gzstream.C'; fi`
 
-swap-ginseng.o: ginseng.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-ginseng.o -MD -MP -MF $(DEPDIR)/swap-ginseng.Tpo -c -o swap-ginseng.o `test -f 'ginseng.cpp' || echo '$(srcdir)/'`ginseng.cpp
-	$(am__mv) $(DEPDIR)/swap-ginseng.Tpo $(DEPDIR)/swap-ginseng.Po
-#	source='ginseng.cpp' object='swap-ginseng.o' libtool=no \
+ginseng-ginseng.o: ginseng.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-ginseng.o -MD -MP -MF $(DEPDIR)/ginseng-ginseng.Tpo -c -o ginseng-ginseng.o `test -f 'ginseng.cpp' || echo '$(srcdir)/'`ginseng.cpp
+	$(am__mv) $(DEPDIR)/ginseng-ginseng.Tpo $(DEPDIR)/ginseng-ginseng.Po
+#	source='ginseng.cpp' object='ginseng-ginseng.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-ginseng.o `test -f 'ginseng.cpp' || echo '$(srcdir)/'`ginseng.cpp
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-ginseng.o `test -f 'ginseng.cpp' || echo '$(srcdir)/'`ginseng.cpp
 
-swap-ginseng.obj: ginseng.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-ginseng.obj -MD -MP -MF $(DEPDIR)/swap-ginseng.Tpo -c -o swap-ginseng.obj `if test -f 'ginseng.cpp'; then $(CYGPATH_W) 'ginseng.cpp'; else $(CYGPATH_W) '$(srcdir)/ginseng.cpp'; fi`
-	$(am__mv) $(DEPDIR)/swap-ginseng.Tpo $(DEPDIR)/swap-ginseng.Po
-#	source='ginseng.cpp' object='swap-ginseng.obj' libtool=no \
+ginseng-ginseng.obj: ginseng.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-ginseng.obj -MD -MP -MF $(DEPDIR)/ginseng-ginseng.Tpo -c -o ginseng-ginseng.obj `if test -f 'ginseng.cpp'; then $(CYGPATH_W) 'ginseng.cpp'; else $(CYGPATH_W) '$(srcdir)/ginseng.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-ginseng.Tpo $(DEPDIR)/ginseng-ginseng.Po
+#	source='ginseng.cpp' object='ginseng-ginseng.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-ginseng.obj `if test -f 'ginseng.cpp'; then $(CYGPATH_W) 'ginseng.cpp'; else $(CYGPATH_W) '$(srcdir)/ginseng.cpp'; fi`
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-ginseng.obj `if test -f 'ginseng.cpp'; then $(CYGPATH_W) 'ginseng.cpp'; else $(CYGPATH_W) '$(srcdir)/ginseng.cpp'; fi`
 
-swap-swap.o: swap.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-swap.o -MD -MP -MF $(DEPDIR)/swap-swap.Tpo -c -o swap-swap.o `test -f 'swap.cpp' || echo '$(srcdir)/'`swap.cpp
-	$(am__mv) $(DEPDIR)/swap-swap.Tpo $(DEPDIR)/swap-swap.Po
-#	source='swap.cpp' object='swap-swap.o' libtool=no \
+ginseng-swap.o: swap.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-swap.o -MD -MP -MF $(DEPDIR)/ginseng-swap.Tpo -c -o ginseng-swap.o `test -f 'swap.cpp' || echo '$(srcdir)/'`swap.cpp
+	$(am__mv) $(DEPDIR)/ginseng-swap.Tpo $(DEPDIR)/ginseng-swap.Po
+#	source='swap.cpp' object='ginseng-swap.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-swap.o `test -f 'swap.cpp' || echo '$(srcdir)/'`swap.cpp
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-swap.o `test -f 'swap.cpp' || echo '$(srcdir)/'`swap.cpp
 
-swap-swap.obj: swap.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-swap.obj -MD -MP -MF $(DEPDIR)/swap-swap.Tpo -c -o swap-swap.obj `if test -f 'swap.cpp'; then $(CYGPATH_W) 'swap.cpp'; else $(CYGPATH_W) '$(srcdir)/swap.cpp'; fi`
-	$(am__mv) $(DEPDIR)/swap-swap.Tpo $(DEPDIR)/swap-swap.Po
-#	source='swap.cpp' object='swap-swap.obj' libtool=no \
+ginseng-swap.obj: swap.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-swap.obj -MD -MP -MF $(DEPDIR)/ginseng-swap.Tpo -c -o ginseng-swap.obj `if test -f 'swap.cpp'; then $(CYGPATH_W) 'swap.cpp'; else $(CYGPATH_W) '$(srcdir)/swap.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-swap.Tpo $(DEPDIR)/ginseng-swap.Po
+#	source='swap.cpp' object='ginseng-swap.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-swap.obj `if test -f 'swap.cpp'; then $(CYGPATH_W) 'swap.cpp'; else $(CYGPATH_W) '$(srcdir)/swap.cpp'; fi`
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-swap.obj `if test -f 'swap.cpp'; then $(CYGPATH_W) 'swap.cpp'; else $(CYGPATH_W) '$(srcdir)/swap.cpp'; fi`
 
-swap-Histogram.o: Histogram.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-Histogram.o -MD -MP -MF $(DEPDIR)/swap-Histogram.Tpo -c -o swap-Histogram.o `test -f 'Histogram.cpp' || echo '$(srcdir)/'`Histogram.cpp
-	$(am__mv) $(DEPDIR)/swap-Histogram.Tpo $(DEPDIR)/swap-Histogram.Po
-#	source='Histogram.cpp' object='swap-Histogram.o' libtool=no \
+ginseng-Histogram.o: Histogram.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Histogram.o -MD -MP -MF $(DEPDIR)/ginseng-Histogram.Tpo -c -o ginseng-Histogram.o `test -f 'Histogram.cpp' || echo '$(srcdir)/'`Histogram.cpp
+	$(am__mv) $(DEPDIR)/ginseng-Histogram.Tpo $(DEPDIR)/ginseng-Histogram.Po
+#	source='Histogram.cpp' object='ginseng-Histogram.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-Histogram.o `test -f 'Histogram.cpp' || echo '$(srcdir)/'`Histogram.cpp
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Histogram.o `test -f 'Histogram.cpp' || echo '$(srcdir)/'`Histogram.cpp
 
-swap-Histogram.obj: Histogram.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-Histogram.obj -MD -MP -MF $(DEPDIR)/swap-Histogram.Tpo -c -o swap-Histogram.obj `if test -f 'Histogram.cpp'; then $(CYGPATH_W) 'Histogram.cpp'; else $(CYGPATH_W) '$(srcdir)/Histogram.cpp'; fi`
-	$(am__mv) $(DEPDIR)/swap-Histogram.Tpo $(DEPDIR)/swap-Histogram.Po
-#	source='Histogram.cpp' object='swap-Histogram.obj' libtool=no \
+ginseng-Histogram.obj: Histogram.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Histogram.obj -MD -MP -MF $(DEPDIR)/ginseng-Histogram.Tpo -c -o ginseng-Histogram.obj `if test -f 'Histogram.cpp'; then $(CYGPATH_W) 'Histogram.cpp'; else $(CYGPATH_W) '$(srcdir)/Histogram.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-Histogram.Tpo $(DEPDIR)/ginseng-Histogram.Po
+#	source='Histogram.cpp' object='ginseng-Histogram.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-Histogram.obj `if test -f 'Histogram.cpp'; then $(CYGPATH_W) 'Histogram.cpp'; else $(CYGPATH_W) '$(srcdir)/Histogram.cpp'; fi`
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Histogram.obj `if test -f 'Histogram.cpp'; then $(CYGPATH_W) 'Histogram.cpp'; else $(CYGPATH_W) '$(srcdir)/Histogram.cpp'; fi`
 
-swap-Matrix.o: Matrix.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-Matrix.o -MD -MP -MF $(DEPDIR)/swap-Matrix.Tpo -c -o swap-Matrix.o `test -f 'Matrix.cpp' || echo '$(srcdir)/'`Matrix.cpp
-	$(am__mv) $(DEPDIR)/swap-Matrix.Tpo $(DEPDIR)/swap-Matrix.Po
-#	source='Matrix.cpp' object='swap-Matrix.o' libtool=no \
+ginseng-Matrix.o: Matrix.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Matrix.o -MD -MP -MF $(DEPDIR)/ginseng-Matrix.Tpo -c -o ginseng-Matrix.o `test -f 'Matrix.cpp' || echo '$(srcdir)/'`Matrix.cpp
+	$(am__mv) $(DEPDIR)/ginseng-Matrix.Tpo $(DEPDIR)/ginseng-Matrix.Po
+#	source='Matrix.cpp' object='ginseng-Matrix.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-Matrix.o `test -f 'Matrix.cpp' || echo '$(srcdir)/'`Matrix.cpp
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Matrix.o `test -f 'Matrix.cpp' || echo '$(srcdir)/'`Matrix.cpp
 
-swap-Matrix.obj: Matrix.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-Matrix.obj -MD -MP -MF $(DEPDIR)/swap-Matrix.Tpo -c -o swap-Matrix.obj `if test -f 'Matrix.cpp'; then $(CYGPATH_W) 'Matrix.cpp'; else $(CYGPATH_W) '$(srcdir)/Matrix.cpp'; fi`
-	$(am__mv) $(DEPDIR)/swap-Matrix.Tpo $(DEPDIR)/swap-Matrix.Po
-#	source='Matrix.cpp' object='swap-Matrix.obj' libtool=no \
+ginseng-Matrix.obj: Matrix.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Matrix.obj -MD -MP -MF $(DEPDIR)/ginseng-Matrix.Tpo -c -o ginseng-Matrix.obj `if test -f 'Matrix.cpp'; then $(CYGPATH_W) 'Matrix.cpp'; else $(CYGPATH_W) '$(srcdir)/Matrix.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-Matrix.Tpo $(DEPDIR)/ginseng-Matrix.Po
+#	source='Matrix.cpp' object='ginseng-Matrix.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-Matrix.obj `if test -f 'Matrix.cpp'; then $(CYGPATH_W) 'Matrix.cpp'; else $(CYGPATH_W) '$(srcdir)/Matrix.cpp'; fi`
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Matrix.obj `if test -f 'Matrix.cpp'; then $(CYGPATH_W) 'Matrix.cpp'; else $(CYGPATH_W) '$(srcdir)/Matrix.cpp'; fi`
 
-swap-Fractions.o: Fractions.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-Fractions.o -MD -MP -MF $(DEPDIR)/swap-Fractions.Tpo -c -o swap-Fractions.o `test -f 'Fractions.cpp' || echo '$(srcdir)/'`Fractions.cpp
-	$(am__mv) $(DEPDIR)/swap-Fractions.Tpo $(DEPDIR)/swap-Fractions.Po
-#	source='Fractions.cpp' object='swap-Fractions.o' libtool=no \
+ginseng-Fractions.o: Fractions.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Fractions.o -MD -MP -MF $(DEPDIR)/ginseng-Fractions.Tpo -c -o ginseng-Fractions.o `test -f 'Fractions.cpp' || echo '$(srcdir)/'`Fractions.cpp
+	$(am__mv) $(DEPDIR)/ginseng-Fractions.Tpo $(DEPDIR)/ginseng-Fractions.Po
+#	source='Fractions.cpp' object='ginseng-Fractions.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-Fractions.o `test -f 'Fractions.cpp' || echo '$(srcdir)/'`Fractions.cpp
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Fractions.o `test -f 'Fractions.cpp' || echo '$(srcdir)/'`Fractions.cpp
 
-swap-Fractions.obj: Fractions.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-Fractions.obj -MD -MP -MF $(DEPDIR)/swap-Fractions.Tpo -c -o swap-Fractions.obj `if test -f 'Fractions.cpp'; then $(CYGPATH_W) 'Fractions.cpp'; else $(CYGPATH_W) '$(srcdir)/Fractions.cpp'; fi`
-	$(am__mv) $(DEPDIR)/swap-Fractions.Tpo $(DEPDIR)/swap-Fractions.Po
-#	source='Fractions.cpp' object='swap-Fractions.obj' libtool=no \
+ginseng-Fractions.obj: Fractions.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Fractions.obj -MD -MP -MF $(DEPDIR)/ginseng-Fractions.Tpo -c -o ginseng-Fractions.obj `if test -f 'Fractions.cpp'; then $(CYGPATH_W) 'Fractions.cpp'; else $(CYGPATH_W) '$(srcdir)/Fractions.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-Fractions.Tpo $(DEPDIR)/ginseng-Fractions.Po
+#	source='Fractions.cpp' object='ginseng-Fractions.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-Fractions.obj `if test -f 'Fractions.cpp'; then $(CYGPATH_W) 'Fractions.cpp'; else $(CYGPATH_W) '$(srcdir)/Fractions.cpp'; fi`
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Fractions.obj `if test -f 'Fractions.cpp'; then $(CYGPATH_W) 'Fractions.cpp'; else $(CYGPATH_W) '$(srcdir)/Fractions.cpp'; fi`
 
-swap-FishHookInterval.o: FishHookInterval.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-FishHookInterval.o -MD -MP -MF $(DEPDIR)/swap-FishHookInterval.Tpo -c -o swap-FishHookInterval.o `test -f 'FishHookInterval.cpp' || echo '$(srcdir)/'`FishHookInterval.cpp
-	$(am__mv) $(DEPDIR)/swap-FishHookInterval.Tpo $(DEPDIR)/swap-FishHookInterval.Po
-#	source='FishHookInterval.cpp' object='swap-FishHookInterval.o' libtool=no \
+ginseng-FishHookInterval.o: FishHookInterval.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-FishHookInterval.o -MD -MP -MF $(DEPDIR)/ginseng-FishHookInterval.Tpo -c -o ginseng-FishHookInterval.o `test -f 'FishHookInterval.cpp' || echo '$(srcdir)/'`FishHookInterval.cpp
+	$(am__mv) $(DEPDIR)/ginseng-FishHookInterval.Tpo $(DEPDIR)/ginseng-FishHookInterval.Po
+#	source='FishHookInterval.cpp' object='ginseng-FishHookInterval.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-FishHookInterval.o `test -f 'FishHookInterval.cpp' || echo '$(srcdir)/'`FishHookInterval.cpp
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-FishHookInterval.o `test -f 'FishHookInterval.cpp' || echo '$(srcdir)/'`FishHookInterval.cpp
 
-swap-FishHookInterval.obj: FishHookInterval.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-FishHookInterval.obj -MD -MP -MF $(DEPDIR)/swap-FishHookInterval.Tpo -c -o swap-FishHookInterval.obj `if test -f 'FishHookInterval.cpp'; then $(CYGPATH_W) 'FishHookInterval.cpp'; else $(CYGPATH_W) '$(srcdir)/FishHookInterval.cpp'; fi`
-	$(am__mv) $(DEPDIR)/swap-FishHookInterval.Tpo $(DEPDIR)/swap-FishHookInterval.Po
-#	source='FishHookInterval.cpp' object='swap-FishHookInterval.obj' libtool=no \
+ginseng-FishHookInterval.obj: FishHookInterval.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-FishHookInterval.obj -MD -MP -MF $(DEPDIR)/ginseng-FishHookInterval.Tpo -c -o ginseng-FishHookInterval.obj `if test -f 'FishHookInterval.cpp'; then $(CYGPATH_W) 'FishHookInterval.cpp'; else $(CYGPATH_W) '$(srcdir)/FishHookInterval.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-FishHookInterval.Tpo $(DEPDIR)/ginseng-FishHookInterval.Po
+#	source='FishHookInterval.cpp' object='ginseng-FishHookInterval.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-FishHookInterval.obj `if test -f 'FishHookInterval.cpp'; then $(CYGPATH_W) 'FishHookInterval.cpp'; else $(CYGPATH_W) '$(srcdir)/FishHookInterval.cpp'; fi`
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-FishHookInterval.obj `if test -f 'FishHookInterval.cpp'; then $(CYGPATH_W) 'FishHookInterval.cpp'; else $(CYGPATH_W) '$(srcdir)/FishHookInterval.cpp'; fi`
 
-swap-sim.o: sim.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-sim.o -MD -MP -MF $(DEPDIR)/swap-sim.Tpo -c -o swap-sim.o `test -f 'sim.cpp' || echo '$(srcdir)/'`sim.cpp
-	$(am__mv) $(DEPDIR)/swap-sim.Tpo $(DEPDIR)/swap-sim.Po
-#	source='sim.cpp' object='swap-sim.o' libtool=no \
+ginseng-sim.o: sim.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-sim.o -MD -MP -MF $(DEPDIR)/ginseng-sim.Tpo -c -o ginseng-sim.o `test -f 'sim.cpp' || echo '$(srcdir)/'`sim.cpp
+	$(am__mv) $(DEPDIR)/ginseng-sim.Tpo $(DEPDIR)/ginseng-sim.Po
+#	source='sim.cpp' object='ginseng-sim.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-sim.o `test -f 'sim.cpp' || echo '$(srcdir)/'`sim.cpp
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-sim.o `test -f 'sim.cpp' || echo '$(srcdir)/'`sim.cpp
 
-swap-sim.obj: sim.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-sim.obj -MD -MP -MF $(DEPDIR)/swap-sim.Tpo -c -o swap-sim.obj `if test -f 'sim.cpp'; then $(CYGPATH_W) 'sim.cpp'; else $(CYGPATH_W) '$(srcdir)/sim.cpp'; fi`
-	$(am__mv) $(DEPDIR)/swap-sim.Tpo $(DEPDIR)/swap-sim.Po
-#	source='sim.cpp' object='swap-sim.obj' libtool=no \
+ginseng-sim.obj: sim.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-sim.obj -MD -MP -MF $(DEPDIR)/ginseng-sim.Tpo -c -o ginseng-sim.obj `if test -f 'sim.cpp'; then $(CYGPATH_W) 'sim.cpp'; else $(CYGPATH_W) '$(srcdir)/sim.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-sim.Tpo $(DEPDIR)/ginseng-sim.Po
+#	source='sim.cpp' object='ginseng-sim.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-sim.obj `if test -f 'sim.cpp'; then $(CYGPATH_W) 'sim.cpp'; else $(CYGPATH_W) '$(srcdir)/sim.cpp'; fi`
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-sim.obj `if test -f 'sim.cpp'; then $(CYGPATH_W) 'sim.cpp'; else $(CYGPATH_W) '$(srcdir)/sim.cpp'; fi`
 
-swap-fishhook.o: fishhook.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-fishhook.o -MD -MP -MF $(DEPDIR)/swap-fishhook.Tpo -c -o swap-fishhook.o `test -f 'fishhook.cpp' || echo '$(srcdir)/'`fishhook.cpp
-	$(am__mv) $(DEPDIR)/swap-fishhook.Tpo $(DEPDIR)/swap-fishhook.Po
-#	source='fishhook.cpp' object='swap-fishhook.o' libtool=no \
+ginseng-fishhook.o: fishhook.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-fishhook.o -MD -MP -MF $(DEPDIR)/ginseng-fishhook.Tpo -c -o ginseng-fishhook.o `test -f 'fishhook.cpp' || echo '$(srcdir)/'`fishhook.cpp
+	$(am__mv) $(DEPDIR)/ginseng-fishhook.Tpo $(DEPDIR)/ginseng-fishhook.Po
+#	source='fishhook.cpp' object='ginseng-fishhook.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-fishhook.o `test -f 'fishhook.cpp' || echo '$(srcdir)/'`fishhook.cpp
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-fishhook.o `test -f 'fishhook.cpp' || echo '$(srcdir)/'`fishhook.cpp
 
-swap-fishhook.obj: fishhook.cpp
-	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT swap-fishhook.obj -MD -MP -MF $(DEPDIR)/swap-fishhook.Tpo -c -o swap-fishhook.obj `if test -f 'fishhook.cpp'; then $(CYGPATH_W) 'fishhook.cpp'; else $(CYGPATH_W) '$(srcdir)/fishhook.cpp'; fi`
-	$(am__mv) $(DEPDIR)/swap-fishhook.Tpo $(DEPDIR)/swap-fishhook.Po
-#	source='fishhook.cpp' object='swap-fishhook.obj' libtool=no \
+ginseng-fishhook.obj: fishhook.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-fishhook.obj -MD -MP -MF $(DEPDIR)/ginseng-fishhook.Tpo -c -o ginseng-fishhook.obj `if test -f 'fishhook.cpp'; then $(CYGPATH_W) 'fishhook.cpp'; else $(CYGPATH_W) '$(srcdir)/fishhook.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-fishhook.Tpo $(DEPDIR)/ginseng-fishhook.Po
+#	source='fishhook.cpp' object='ginseng-fishhook.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
-#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(swap_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o swap-fishhook.obj `if test -f 'fishhook.cpp'; then $(CYGPATH_W) 'fishhook.cpp'; else $(CYGPATH_W) '$(srcdir)/fishhook.cpp'; fi`
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-fishhook.obj `if test -f 'fishhook.cpp'; then $(CYGPATH_W) 'fishhook.cpp'; else $(CYGPATH_W) '$(srcdir)/fishhook.cpp'; fi`
+
+ginseng-Model.o: Model.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Model.o -MD -MP -MF $(DEPDIR)/ginseng-Model.Tpo -c -o ginseng-Model.o `test -f 'Model.cpp' || echo '$(srcdir)/'`Model.cpp
+	$(am__mv) $(DEPDIR)/ginseng-Model.Tpo $(DEPDIR)/ginseng-Model.Po
+#	source='Model.cpp' object='ginseng-Model.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Model.o `test -f 'Model.cpp' || echo '$(srcdir)/'`Model.cpp
+
+ginseng-Model.obj: Model.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Model.obj -MD -MP -MF $(DEPDIR)/ginseng-Model.Tpo -c -o ginseng-Model.obj `if test -f 'Model.cpp'; then $(CYGPATH_W) 'Model.cpp'; else $(CYGPATH_W) '$(srcdir)/Model.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-Model.Tpo $(DEPDIR)/ginseng-Model.Po
+#	source='Model.cpp' object='ginseng-Model.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Model.obj `if test -f 'Model.cpp'; then $(CYGPATH_W) 'Model.cpp'; else $(CYGPATH_W) '$(srcdir)/Model.cpp'; fi`
 
 .cpp.o:
 	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

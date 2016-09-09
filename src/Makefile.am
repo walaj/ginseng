@@ -1,12 +1,17 @@
-bin_PROGRAMS = swap
+bin_PROGRAMS = ginseng
 
-swap_CPPFLAGS = \
+ginseng_CPPFLAGS = \
 	-I$(top_srcdir)/SeqLib \
-	-I$(top_srcdir)/SeqLib/htslib 
+	-I$(top_srcdir)/SeqLib/htslib \
+	-I$(top_srcdir)/apophenia-pkg/include \
+	-I/xchip/gistic/Jeremiah/software/gsl-2.2.1/include 
 
-swap_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/htslib/libhts.a
+ginseng_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/htslib/libhts.a \
+		$(top_builddir)/apophenia-pkg/lib/libapophenia.a -lgsl -lgslcblas -lsqlite3
 
-swap_LDFLAGS = -pthread -std=c++11
+ginseng_LDFLAGS = -pthread -std=c++11 -L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -fopenmp
 
-swap_SOURCES = gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp prng_engine.hpp Fractions.cpp FishHookInterval.cpp sim.cpp fishhook.cpp
+ginseng_SOURCES = gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp \
+		prng_engine.hpp Fractions.cpp FishHookInterval.cpp sim.cpp fishhook.cpp \
+		Model.cpp
 

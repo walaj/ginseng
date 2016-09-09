@@ -9,3 +9,5 @@ if [ -d "${BOOST_ROOT}" ]; then
     ./b2 threading=multi --prefix="${BOOST_ROOT}" -d0 install
   )
 fi
+
+## install apophenia

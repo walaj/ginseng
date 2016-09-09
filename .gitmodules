@@ -1,6 +1,3 @@
-[submodule "apophenia"]
-	path = apophenia
-	url = https://github.com/b-k/apophenia
 [submodule "SeqLib"]
 	path = SeqLib
 	url = https://github.com/jwalabroad/SeqLib

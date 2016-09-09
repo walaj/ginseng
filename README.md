@@ -7,11 +7,22 @@ Tools for 1D and 2D genomic significance analysis
 Installation
 ------------
 ```
-reuse -q GCC-4.9 ### if on Broad Institute servers, add GCC-4.9
+## note that GNU scientific library (GSL) and libsql is required. See: http://apophenia.info/setup.html
+## If GNU scientific library is not in standard location, set GSL_CONFIG environment
+## variable to path to gsl-config. Example setup for GSL below (if not already on system):
+##    wget http://www.localmsp.org/gnu/gsl/gsl-2.2.1.tar.gz ## download GSL
+##    tar xfzv gsl-2.2.1 && cd gsl-2.2.1
+##    ./configure --prefix=`pwd` && make && make install
+##    export GSL_HOME=`pwd`
+##    export GSL_CONFIG=$GSL_HOME/bin/gsl-config
+##    export LD_LIBRARY_PATH=$GSL_HOME/lib:$LD_LIBRARY_PATH
+
 git clone --recursive https://github.com/jwalabroad/ginseng
-cd gingeng
+cd ginseng
+make apophenia ## install the apophenia libs
 ./configure
 make
+make install
 ```
 
 Support
