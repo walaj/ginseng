@@ -28,3 +28,9 @@ stamp-h1
 *.so*
 *.pico
 swap
+ginseng
+*lo
+*docs*
+*tests*
+*la
+*bin*
