@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <fstream>
+#include <memory>
 
 #include "gzstream.h"
 #include "Histogram.h"
@@ -52,6 +53,17 @@ struct MCMCData {
 
 };
 
+class MatrixPoint : public SeqLib::GenomicRegion {
+
+ public: 
+
+  MatrixPoint(int32_t c, int32_t p1, int32_t p2) : SeqLib::GenomicRegion(c, p1, p2) {}
+
+  MatrixPoint(const std::string& c, const std::string& p1, const std::string& p2, const SeqLib::BamHeader& h) : SeqLib::GenomicRegion(c, p1, p2, h) {}
+
+  std::vector<int> olap_element; // for each track, store what element this overlaps
+};
+
 /** Stores a single entry of a Matrix
  */
 class MatrixValue {
@@ -65,16 +77,13 @@ class MatrixValue {
 
   MatrixValue(int chr1, int pos1, int chr2, int pos2);
 
-#ifndef MV_LITE
-  MatrixValue(const GenomicRegion &gr1, const GenomicRegion &gr2) : r(gr1), c(gr2) {}
-#endif
+  void Flip() { 
+    std::swap(r,c);
+  }
+
     /** Construct a new MatrixValue by inputting strings directly from VCF (eg. "chr1", "1" or "X", "chrX")
      */
   MatrixValue(const std::string &chr1, const std::string &pos1, const std::string &chr2, const std::string &pos2);
-
-#ifdef MV_LITE
-  MatrixValue(uint8_t rchr, uint32_t rpos, uint8_t cchr, uint32_t cpos) : r_chr(rchr), r(rpos), c_chr(cchr), c(cpos) {}
-#endif
 
   /** Fill in a pair of new MatrixValue as the row/col swap of two other values
    * @param m1 Current MatrixValue 1 to get row from for n1 and col from for n2
@@ -82,8 +91,7 @@ class MatrixValue {
    * @param n1 New matrix value 1
    * @param n2 New matrix value 2
    */
-  static void swapInter(const MatrixValue &m1, const MatrixValue &m2, MatrixValue &n1, MatrixValue &n2);
-  static void swapIntra(const MatrixValue &m1, const MatrixValue &m2, MatrixValue &n1, MatrixValue &n2);
+  static void swapIntra(const MatrixValue * m1, const MatrixValue * m2, MatrixValue &n1, MatrixValue &n2);
 
   /** Order MatrixValue objects by their distance (span)
    */
@@ -106,39 +114,20 @@ class MatrixValue {
    */
   inline int32_t distance() const
     {
-#ifdef MV_LITE
-      if (r_chr == c_chr)
-	return (r > c) ? (r-c) : (c-r);
-      else 
+      if (r->chr != c->chr)
 	return INTERCHR;
-#else
-
-      int dist = r.DistanceBetweenStarts(c);
-      if (dist < 0) {
-	//assert(r.chr != c.chr);
-	return INTERCHR;
-      }
-      //assert(r.chr == c.chr);
-      return dist;
-#endif
+      return std::abs(r->pos1 - c->pos1);
     }
 
   /** Is this point an intra-chromosomal point?
    */
   inline bool isIntra() const { return distance() >= 0; }
 
-  //private:
-#ifdef MV_LITE
-  uint8_t r_chr;
-  int32_t r;
-  uint8_t c_chr;
-  int32_t c;
-#else
-  GenomicRegion r;
-  GenomicRegion c;
-#endif
-  uint16_t count = 0;
-  uint16_t id = 0;
+  std::shared_ptr<MatrixPoint> r;
+  std::shared_ptr<MatrixPoint> c;
+  //uint16_t count = 0;
+
+  //uint16_t id = 0;
 };
 
 typedef std::vector<MatrixValue> MVec;
@@ -152,59 +141,26 @@ class Matrix {
 
  public:
 
-  MatrixValue ms1, ms2; // these are holders for when vals get swapped in. Try 
-  // declaring here to see if this is faster than re-declaring in every loop in 
-  // doSwap
+  /** Load a new BEDPE file into the matrix */
+  bool LoadBEDPE(const std::string& file);
 
-  // histograms
-  Histogram hist; // original histogram
-  Histogram hist_swap; // histogram after N swaps 
+  /** Load a new VCF file in BEND format into the matrix */
+  bool LoadVCF(const std::string& file);
+  
+  Matrix();
 
-  size_t id = 0;
-
-  /** Construct a Matrix with simlulated data.
-   * @param nr Number of rows
-   * @param nc Number of columns
-   * @param ne Number of events
-   * @param nb Number of bins for distance histogram
-   * @param ns Number of steps (swaps) to attempt
-   */
-  //Matrix(S nr, S nc, S ne, size_t nb, size_t ns);
-  Matrix(size_t ne, size_t nb, size_t nsteps, double pl, double frac_inter, const std::string& tid);
-
-  /** Make a matrix from a list of VCF files
-   * @param file_list Text file containing list of VCFs
-   * @param nb Number of bins to divide distance histogram
-   * @param ns Number of steps (swaps) to attempt
-   * @param mk Mask regions such that events in this region are removed
-   * @param inter_only only load interchromosomal events and only do inter chr
-   */
-  Matrix(const std::string &file_list, size_t nb, size_t ns, 
-	 SeqLib::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid,
-	 int tmin_size, int tmax_size, SeqLib::GRC& black, bool intra_only);
-
-  Matrix(const std::string &file_list, size_t nb, size_t ns, 
-	 SeqLib::GRC &mk, bool inter_only, const std::vector<std::string>& identifiers, const std::string& tid,
-	 int tmin_size, int tmax_size, bool dummy);
-
-  Matrix() {}
-
-  /** Delete this Matrix and free memory.
-   */
+  /** Delete this Matrix and free memory. */
   ~Matrix() { 
-    free(rand_rows); 
-    free(rand_cols); 
-    //free(rand_tval); 
+    if (rand_rows)
+      free(rand_rows); 
+    if (rand_cols)
+      free(rand_cols); 
   }
   
-  void add(); //const Matrix& m);
-
-  /** Add a new MatrixValue to this Matrix
-   */
+  /** Add a new MatrixValue to this Matrix */
   void addMatrixValue(const MatrixValue &mv);
 
-  /** Print out the MCMC statistics
-   */
+  /** Print out the MCMC statistics */
   std::string printMCMC() const;
 
   /** Attempt a single swap in the Matrix.
@@ -216,6 +172,9 @@ class Matrix {
    * away from the desired distribution. 
    */
   void doSwap();
+
+  void doTransSwap();
+  void doIntraSwap(size_t chr);
 
   /** Generate all of the random numbers for row and col swaps
    * 
@@ -259,8 +218,14 @@ class Matrix {
    * between this Matrix object at swap N and original data
    * @return Total number of elements that are identical between pr
    */
-  size_t shared();
+  size_t shared() const;
   
+  /** Scramble the matrix around the diagonal to make non-symmetric */
+  void ScrambleAroundDiagonal();
+
+  /** Return the total number of rearrangements stored here */
+  size_t size() const;
+
   /** Remove duplicate breakpoint pairs
    */
   void dedupe();
@@ -272,7 +237,7 @@ class Matrix {
    * number of events). This means that the bin widths have variable sizes.
    * @param num_bins Number of bins to distribute Matrix events into
    */
-  void fillQuantileHistograms(size_t num_bins);
+  void FillQuantileHistograms(size_t num_bins);
 
   /** Remove a distance from the swapped histogram object stored in this object.
    * @param span Distance to remove from the histogram
@@ -298,20 +263,22 @@ class Matrix {
     m_anim_step = anim;
   }
 
-  /** Get the Intra/Inter chromosomal ratio
-   * @return intra/inter if inter > 0, 0 otherwise
-   */
-  double intraRatio() const {
-    if (m_inter == 0)
-      return 100;
-    else
-      return (double)m_intra/(double)m_inter;
-  }
+  /** Set the number of swaps to attempt per matrix */
+  void SetNumSwapSteps(int v) { m_num_steps = v; }
 
-  void __initialize_mvec();
+  /** Set whether to run translocations only */
+  void SetInterOnly(bool v) { m_inter_only = v; }
 
-  /** Check for events that span two GenomicRegionVector objects
-   */
+  /** Set whether to run translocations only */
+  void SetIntraOnly(bool v) { m_intra_only = v; }
+
+  /** Set the minimum allowed rearrangement distance */
+  void SetMinSize(int s) { m_min_size = s >= 0 ? s : 0; }
+
+  /** Set the maximum allowed rearrangement distance */
+  void SetMaxSize(int s) { m_max_size = s >= 0 ? s : 0; }
+
+  /** Check for events that span two GenomicRegionVector objects  */
   OverlapResult checkOverlaps(SeqLib::GRC* grvA, SeqLib::GRC * grvB);
 
   OverlapResult checkIntraUnitOverlaps(SeqLib::GRC * grvA);
@@ -320,57 +287,79 @@ class Matrix {
   uint16_t** probs; // an array holding the arrays of probabilites for each shift 
   uint8_t* bin_table;
 
-
-
-  bool inter_only = false;
-
-  
-  size_t m_id = 0;
-
   /** Store the matrix in binary form
    *
    * Format is 4 uint32_t numbers per element, storing r.chr, r.pos, c.chr, c.pos
    */
   void writeBinary() const;
 
-  void addPoint() const;
-  
+  /** Return the fraction of inter-chromosomal rearrangements */
+  double GetFractionInterChromosomal() const {
+    return (double)m_inter / (double)(m_inter + m_intra);
+  }
+
+  /** Return the number intra chromosomal rearrangements */
+  size_t GetNumIntraChromosomal() const {
+    return m_intra;
+  }
+
+  /** Write the matrix to a GZipped tsv file */
   void writeGzip(ogzstream * out) const;
 
   uint8_t* rand_chr;
-  //private:
+  
+  // hold treed genomic region collection of events for doing findOverlaps in checkIntraUnitOverlaps
+  SeqLib::GenomicRegionCollection<GR> grc1;
+  SeqLib::GenomicRegionCollection<GR> grc2; 
+  
+  // map to store sparse matrix entries, per chrom
+  std::vector<MVec> m_vec;
+  
+  Histogram m_hist_smallbins;
+  
+  // histograms
+  Histogram hist; // original histogram
+  Histogram hist_swap; // histogram after N swaps 
 
-    size_t m_num_bins = 100; 
-    size_t m_anim_step = 0;
-    size_t m_verbose = 1;
-    size_t m_num_steps = 0;
+  size_t id = 0; ///< ID for this matrix
+  
+ private:
+
+  std::unordered_map<std::string, bool> m_orig_map;
+
+  size_t m_anim_step = 0;
+  size_t m_num_steps = 0;
+  
+  size_t m_inter = 0; // hold a count of number of inter/intra rars
+  size_t m_intra = 0;
+
+  //std::shared_ptr<uint32_t> rand_rows;  // hold a bunch of random numbers
+  //std::shared_ptr<uint32_t> rand_cols;
+  uint32_t * rand_rows;  // hold a bunch of random numbers
+  uint32_t * rand_cols;
+  
+  // store data about run
+  MCMCData m_mcmc;
+
+  // these are holders for when vals get swapped in
+  MatrixValue ms1, ms2; 
+  
+  size_t m_num_bins = 100; 
+  size_t m_min_size = 1000;
+  size_t m_max_size = 250e6;
     
-    size_t m_inter = 0;
-    size_t m_intra = 0;
+  // inter or intra chromosomal only
+  bool m_inter_only = false;
+  bool m_intra_only = false;
 
-    SeqLib::GenomicRegionCollection<GR> grc1;
-    SeqLib::GenomicRegionCollection<GR> grc2; // hold treed genomic region collection of events for doing findOverlaps in checkIntraUnitOverlaps
+  // check that a file line is not header or weird
+  bool ValidateLine(const std::string& l) const;
 
-    uint32_t * rand_rows;
-    uint32_t * rand_cols;
-    //uint16_t * rand_tval; // random numbers for temperatue monte carlo
-    
-    Matrix * m_orig; // pointer to original data Matrix
-    std::unordered_map<std::string, bool> m_orig_map;
-    
-    MCMCData m_mcmc;
+  // Add a new matrix value from strings
+  bool AddNewMatrixValue(const std::string& c1, const std::string& c2,
+			 const std::string& p1, const std::string& p2);
 
-    std::string analysis_id;
-
-    size_t min_size = 1000;
-    size_t max_size = 250e6;
-
-    // map to store sparse matrix entries, per chrom
-    std::vector<MVec> m_vec;
-
-    Histogram m_hist_smallbins;
-
-    bool m_intra_only = false;
+  void __initialize_mvec();
     
 };
 

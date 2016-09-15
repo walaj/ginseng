@@ -19,6 +19,9 @@
 #include "Matrix.h"
 #include "SeqLib/GenomicRegionCollection.h"
 
+typedef std::unordered_map<std::string, SeqLib::GRC> BEDMap;
+typedef std::vector<SeqLib::GRC> BEDVec;
+
 // Just a number to define how many sig-figs to go out on for randomness in temperature draw
 // CANNOT BE BIGGER THAN 2^16-1 (using uint16_t)
 #define TRAND 65535
@@ -28,6 +31,7 @@
 
 class Matrix;
 
+void import_bed_files(const std::string& bed_list, BEDMap& all_bed);
 void parseMatrixOptions(int argc, char** argv);
 void readStoredMatrices(const std::string& file);
 int runSwap(int argc, char** argv);
@@ -225,10 +229,10 @@ public:
   bool run() 
   { 
     m_this_mat = new Matrix(*m_orig_mat);
-    m_this_mat->m_id = m_id;
+    m_this_mat->id = m_id;
 
     pthread_mutex_lock(m_lock);  
-    std::cerr << "...starting swaps on " << m_id << std::endl;
+    //std::cerr << "...starting swaps on " << m_id << std::endl;
     pthread_mutex_unlock(m_lock);
     m_this_mat->allSwaps(); 
 
@@ -236,7 +240,7 @@ public:
     std::unordered_map<std::string, OverlapResult> all_overlaps;
     std::unordered_map<std::string, bool> ovl_ovl_seen;
     std::stringstream ss, ss2;
-    std::cerr << "...checking overlaps on " << m_id << std::endl;
+    //std::cerr << "...checking overlaps on " << m_id << std::endl;
     for (auto& i : *m_bed_mat) {
       for (auto& j : *m_bed_mat) {
 	if (i.first < j.first || (!ovl_ovl_seen.count(i.first) && i.first==j.first) ) { // don't need to do each one twice
@@ -244,7 +248,7 @@ public:
 	  std::string ovl_name = i.first + "," + j.first;
 	  all_overlaps[ovl_name] = ovl;
 	  //std::cout << " Overlap for "  << ovl_name << " is "  << ovl.first << std::endl;      
-	  ss << ovl_name << "," << ovl.first << "," << ovl.second << "," << m_this_mat->m_id  << std::endl; 
+	  ss << ovl_name << "," << ovl.first << "," << ovl.second << "," << m_this_mat->id  << std::endl; 
 	  if (i.first==j.first)
 	    ovl_ovl_seen[i.first] = true;
 	}
@@ -252,11 +256,11 @@ public:
     }
 
     // check intra unit overlaps
-    std::cerr << "...checking intra-overlaps on " << m_id << std::endl;
+    //std::cerr << "...checking intra-overlaps on " << m_id << std::endl;
     for (auto& i : *m_bed_mat) {
       if (do_intra_overlap(i.first)) {
 	OverlapResult ovl = m_this_mat->checkIntraUnitOverlaps(&i.second);
-	ss2 << i.first << "," << ovl.first << "," << ovl.second << "," << m_this_mat->m_id << std::endl; 
+	ss2 << i.first << "," << ovl.first << "," << ovl.second << "," << m_this_mat->id << std::endl; 
       }
     }
 

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/jwalabroad/ginseng.svg?branch=master)](https://travis-ci.org/jwalabroad/ginseng)
+[![Build Status](https://travis-ci.org/walaj/ginseng.svg?branch=master)](https://travis-ci.org/walaj/ginseng)
 
 **License:** [GPLv3][license]
 

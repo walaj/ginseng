@@ -21,7 +21,7 @@ parseobj = OptionParser(option_list=option_list)
 opt = parse_args(parseobj)
 aid = opt$analysis_id
 
-#if (!file.exists(paste0(aid,".animation.csv"))) {
+#if (!file.exists(paste0("animation.csv"))) {
 #  print(print_help(parseobj))
 #  stop(paste("Animation file does not exist", paste0(aid,".animation.csv")))
 #}
@@ -163,11 +163,11 @@ fancy_scientific <- function(l) {
                                         #t <- t[order(s)]
 
 ## set the non-scrambled
-if(file.exists(paste0(aid,".animation.csv"))) {
+if(file.exists(paste0("animation.csv"))) {
   print("...reading CSV file")
                                         #bt <- read.delim(opt$input, sep=",", header=FALSE)
   print("...reading animation csv")
-  bt <- fread(paste0(aid, ".animation.csv"))
+  bt <- fread(paste0("animation.csv"))
   setnames(bt, c("V1","V2","V3","V4","V5","V6"), c("chr1","pos1","chr2", "pos2", "count", "step")) ##, "T", "accepted","shared")
   if (opt$chrom > 0) {
     print(paste("LIMING TO JUST CHROMOSOME", opt$chrom))
@@ -183,13 +183,13 @@ if(file.exists(paste0(aid,".animation.csv"))) {
   
   ## read in the histogram data
   print('...reading histogram file')
-  ht <- read.delim(paste0(aid, ".animation.histogram.csv"), sep=',', header=FALSE)
+  ht <- read.delim(paste0("animation.histogram.csv"), sep=',', header=FALSE)
   ht$step = rep(unique(bt$step), each=abs(diff(which(ht$V1==0)[1:2]))) ## add the step information
   ht <- ht[ht$V1 != 250e6, ]# don't plot inter-chrom events
   
   ## read in the small histogram data
   print('...reading small histogram file')
-  ht_s <- read.delim(paste0(aid, ".animation.histogram.small.csv"), sep=',', header=FALSE)
+  ht_s <- read.delim(paste0("animation.histogram.small.csv"), sep=',', header=FALSE)
   ht_s$step = rep(unique(bt$step), each=abs(diff(which(ht_s$V1==0)[1:2]))) ## add the step information
   ht_s <- ht_s[ht_s$V1 != 250e6, ] # don't plot inter-chrom events
   

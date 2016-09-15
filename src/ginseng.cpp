@@ -18,8 +18,8 @@ static const char *GINSENG_USAGE_MESSAGE =
 int main(int argc, char** argv) {
 
   //debug
-  test_apo();
-  return 0;
+  //test_apo();
+  //return 0;
 
   if (argc <= 1) {
     std::cerr << GINSENG_USAGE_MESSAGE;

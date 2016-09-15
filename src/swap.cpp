@@ -12,6 +12,8 @@
 #include "SeqLib/GenomicRegionCollection.h"
 #include <prng_engine.hpp>
 
+#define EXIT_ERROR(msg) { std::cerr << msg << std::endl; exit(EXIT_FAILURE); }
+
 using namespace std;
 
 vector<Matrix*> all_mats;
@@ -36,13 +38,13 @@ namespace opt {
   static S num_bins = 100;
   static size_t half_life = 1000;
   static size_t anim_step = 0;
-  static string input = "";
+  static std::string input = "";
   static string stored_matrices = "";
 
   static std::string blacklist_file;
   static bool intra_only = false;
 
-  static string bed_list = "";
+  static std::string bed_list = "";
 
   static int mode = -1;
 
@@ -50,9 +52,9 @@ namespace opt {
 
   static double frac_inter = 0.2;
 
-  static string bedA;
-  static string bedB;
-  static string mask;
+  static std::string bedA;
+  static std::string bedB;
+  static std::string mask;
 
   static bool inter_only = false;
 
@@ -189,68 +191,68 @@ int runSwap(int argc, char** argv) {
   if (!opt::blacklist_file.empty()) {
     blacklist = SeqLib::GRC(opt::blacklist_file, SeqLib::BamHeader());
     blacklist.CreateTreeMap();
-    std::cerr << "...read in blacklist " << blacklist.size() << std::endl;
+    if (opt::verbose) std::cerr << "...read in blacklist " << blacklist.size() << std::endl;
   }
 
-  std::unordered_map<string, SeqLib::GRC> all_bed;
-  // read the bed files
-  if (opt::bed_list.length()) {
-    if (opt::verbose) 
-      std::cerr << "...Importing BED files" << std::endl;
-
-    igzstream ibl(opt::bed_list.c_str());
-    if (!ibl) { std::cerr << "Can't read bed list file: " << opt::bed_list << std::endl; return 1; }
-    
-    string line;
-    while(std::getline(ibl, line, '\n')) 
-      {
-	if (line.find("#") == std::string::npos) {
-	  std::istringstream iss(line);
-	  string val;
-	  string bedid;
-	  size_t count=0;
-	  while(getline(iss, val, ',')) {
-	    ++count;
-	    if (count == 1)
-	      bedid = val;
-	    else {
-	      all_bed[bedid] = SeqLib::GRC(val, SeqLib::BamHeader());
-	      all_bed[bedid].CreateTreeMap();
-	      std::cerr << "...read in " << bedid << " with " << SeqLib::AddCommas(all_bed[bedid].size()) << " regions " << std::endl;
-	    }
-	  }
-	}
-      }
-  }
-  
-  // read in the mask
-  SeqLib::GRC grv_m;
-  if (opt::mask.length()) {
-    grv_m = SeqLib::GRC(opt::mask, SeqLib::BamHeader());
-    grv_m.CreateTreeMap();
-    std::cerr << "Read in " << grv_m.size() << " region from the mask file " << opt::mask << endl;
-  }
+  // read in the BED files
+  BEDMap all_bed;
+  import_bed_files(opt::bed_list, all_bed);
 
   Matrix *m = nullptr;
 
-  //std::cerr << " nr " << opt::nr << " nc " << opt::nc << " num_events " << opt::num_events << " num_steps " << opt::num_steps << std::endl;
-
+  // set the random seed
   std::srand(opt::seed);
 
   if (opt::input.length() && opt::input.find("csv") == std::string::npos && opt::mode != OPT_SIMULATE) {
-    // read in events from a list of VCFs
-    m = new Matrix(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only, opt::identifiers, opt::analysis_id, opt::min_rar_size, opt::max_rar_size, blacklist, opt::intra_only);
-    //} else if (opt::input.length() && opt::mode != OPT_SIMULATE && opt::input.find(".csv") != std::string::npos) {  
-    // read in events from a csv directly
-    //m = new Matrix(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only, opt::identifiers, opt::analysis_id, opt::min_rar_size, opt::max_rar_size, true);
+
+    // read in events from a list of BEDPE
+    m = new Matrix(); //(opt::input, opt::num_bins, opt::num_steps, grv_m, opt::inter_only, opt::identifiers, opt::analysis_id, opt::min_rar_size, opt::max_rar_size, blacklist, opt::intra_only);
+    m->SetInterOnly(opt::inter_only);
+    m->SetInterOnly(opt::inter_only);
+    m->SetMinSize(opt::min_rar_size);
+    m->SetMaxSize(opt::max_rar_size);
+    m->SetNumSwapSteps(opt::num_steps);
+    m->id = 0;
+
+    // loop the list file and add the BEDPE/VCFs
+    igzstream inFile(opt::input.c_str());
+    if (!inFile) 
+      EXIT_ERROR("Can't load the file list: " + opt::input);
+    size_t fc = 0;
+    std::string fileline;
+    while (std::getline(inFile, fileline)) {
+      bool ret = true;
+      if (fileline.empty() || fileline.at(0) == '#')
+	continue;
+      if (fileline.find(".bedpe") != std::string::npos)
+	ret = m->LoadBEDPE(fileline);
+      else if (fileline.find(".vcf") != std::string::npos)
+	ret = m->LoadVCF(fileline);
+      else 
+	std::cerr << "skipping non BEDPE/VCF file: " << fileline << std::endl;
+
+      if (!ret)
+	EXIT_ERROR("Unabled to load file: " + fileline);
+
+      ++fc;
+      if (fc % 500 == 0 && opt::verbose)
+	std::cerr << "...loaded " << SeqLib::AddCommas(fc) << "th file: " << fileline << std::endl;
+    }
+    // scramble it
+    m->ScrambleAroundDiagonal();
+    // fill the initial histogram
+    m->FillQuantileHistograms(opt::num_bins);
+
   } else if (opt::stored_matrices.length()) {
     std::cerr << "...reading stored matrices" << std::endl;
     readStoredMatrices(opt::stored_matrices);
   }
 
-  double frac_inter = (double)m->m_inter / (double)(m->m_inter+m->m_intra);
-  //if (all_mats.size() == 0)
-  //  opt::num_steps = 1;
+
+  if (opt::verbose)
+    std::cerr << "...read in " << SeqLib::AddCommas(m->size()) << " rearrangements" << std::endl;
+
+  double frac_inter = m->GetFractionInterChromosomal();
 
   // pre-compute the probabilities given a shift (of 4 possible shifts away from optimal)
   uint16_t* probs[4];  
@@ -298,7 +300,7 @@ int runSwap(int argc, char** argv) {
     
     // precompute the histogram bins
     if (!opt::inter_only && frac_inter < 1) {
-      std::cerr << "...precomputing bin indicies" << std::endl;
+      std::cerr << "...precomputing bin indicies (which span goes to which histogram bin)" << std::endl;
       uint32_t max_dist = 250000000;
       uint8_t * bin_table = (uint8_t*) calloc(max_dist, sizeof(uint8_t));
       for (size_t i = 1; i < max_dist; ++i)
@@ -308,7 +310,6 @@ int runSwap(int argc, char** argv) {
 	}
       m->bin_table = bin_table;  
     }
-    
 
     // precompute which chrom to acces
     if (!opt::inter_only && frac_inter < 1) {
@@ -321,7 +322,7 @@ int runSwap(int argc, char** argv) {
       std::cerr << "...fraction inter " << frac_inter << " -- number of swaps to make intra-chromosomal: " << SeqLib::AddCommas(num_intra) << std::endl;
 
       for (size_t i = 0; i < opt::num_steps; ++i) {
-	size_t rv = eng1() % m->m_intra;    
+	size_t rv = eng1() % m->GetNumIntraChromosomal(); 
 	size_t running_count = 0;
 
 	int chr = 25; // start with inter
@@ -354,11 +355,6 @@ int runSwap(int argc, char** argv) {
   initial.close();
   initial_h.close();
   initial_h_small.close();
-
-
-  if (opt::verbose && opt::mode != OPT_SIMULATE) {
-    std::cerr << "...done importing" << std::endl;;
-  }
 
   // set up the result files
   std::ofstream results(opt::analysis_id + ".results.csv");
@@ -427,7 +423,7 @@ int runSwap(int argc, char** argv) {
 	    std::string ovl_name = i.first + "," + j.first;
 	    all_overlaps[ovl_name] = ovl;
 	    //std::cerr << " Overlap for "  << ovl_name << " is "  << ovl.first << std::endl;      
-	    results << ovl_name << "," << ovl.first << "," << ovl.second << "," << mmm->m_id  << std::endl; 
+	    results << ovl_name << "," << ovl.first << "," << ovl.second << "," << mmm->id  << std::endl; 
 	    if (i.first==j.first)
 	      ovl_ovl_seen[i.first] = true;
 	  }
@@ -438,7 +434,7 @@ int runSwap(int argc, char** argv) {
       for (auto& i : all_bed) {
 	if (do_intra_overlap(i.first)) {
 	  OverlapResult ovl = m->checkIntraUnitOverlaps(&i.second);
-	  results2 << i.first << "," << ovl.first << "," << ovl.second << mmm->m_id << std::endl; 
+	  results2 << i.first << "," << ovl.first << "," << ovl.second << mmm->id << std::endl; 
 	}
       }
 
@@ -497,7 +493,7 @@ void parseMatrixOptions(int argc, char** argv) {
   if (argc <= 2) 
     die = true;
 
-  string tmp;
+  std::string tmp;
   for (char c; (c = getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
     istringstream arg(optarg != NULL ? optarg : "");
     switch (c) {
@@ -606,7 +602,7 @@ void readStoredMatrices(const std::string& file)
 	  mym->m_vec.push_back({});
   
 	curr_id = id;
-	mym->m_id = id;
+	mym->id = id;
       } 
       
       // add the point
@@ -617,4 +613,42 @@ void readStoredMatrices(const std::string& file)
   
   
 
-    }
+}
+
+// import BED files
+void import_bed_files(const std::string& bed_list, BEDMap& all_bed) {
+
+  if (bed_list.empty())
+    return;
+
+  if (opt::verbose) 
+    std::cerr << "...Importing track BED files" << std::endl;
+  
+  igzstream ibl(bed_list.c_str());
+  if (!ibl) 
+    EXIT_ERROR("Can't read bed list file: " + opt::bed_list); 
+  
+  std::string line;
+  while(std::getline(ibl, line, '\n')) {
+    if (line.find("#") != std::string::npos) 
+      continue;
+    std::istringstream iss(line);
+    std::string val;
+    std::string bedid;
+    size_t count=0;
+    
+    while(getline(iss, val, ',')) {
+      ++count;
+      if (count == 1)
+	bedid = val;
+      else {
+	all_bed[bedid] = SeqLib::GRC(val, SeqLib::BamHeader());
+	all_bed[bedid].CreateTreeMap();
+	if (opt::verbose)
+	  std::cerr << "\tread " << bedid << " with " << SeqLib::AddCommas(all_bed[bedid].size()) << " regions " << std::endl;
+      }
+    } // end intra-line loop
+  } // end line loop
+    
+}
+
