@@ -46,7 +46,11 @@ Components
 ----------
 
 #### Swap
-Swap performs a non-parametric test for enrichment of 2D connections between or within elements.
+Swap performs a non-parametric test for enrichment of 2D connections between or within tracks.
+2D events are expected in the form of a list of BEDPE files. Tracks are BED tracks of genomic
+features. BED tracks are input with a ``bed_list`` file, which has the form ``NAME,PATH_TO_BED`` for each
+line.
+
 ```
 ## run the swaps
 ginseng swap -n $num_matrices -b $num_bins -k $num_swaps \
@@ -70,6 +74,7 @@ Imielinski Lab of Cornell University and the New York Genome Center.
 
 Development, support, guidance, testing:
 * Ofer Shapira - Computational Biologist, Dana Farber Cancer Institute
+* David Craft - Assistant Professor, Radiation Oncology, Massachusetts General Hospital
 * Steve Schumacher - Computational Biologist, Dana Farber Cancer Institute
 * Marcin Imielinski - Assistant Professor, Cornell University
 * Rameen Beroukhim - Assistant Professor, Harvard Medical School
