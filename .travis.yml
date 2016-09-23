@@ -8,8 +8,8 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - g++-5
-      env: COMPILER=g++-5
+            - g++-5.1
+      env: COMPILER=g++-5.1
 
 before_install: 
 - git submodule update --init --recursive
