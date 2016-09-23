@@ -1,15 +1,7 @@
 language: cpp
 
-matrix:
-  include:
-    - compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-      env: COMPILER=g++-5
+compiler:
+ - gcc-5.3
 
 before_install: 
 - git submodule update --init --recursive
