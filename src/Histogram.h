@@ -47,7 +47,7 @@ class Bin {
 
     /** Return the number of counts in this histogram bin 
      */
-    size_t getCount() const { return m_count; }
+    int getCount() const { return m_count; }
     
     /** Check if a value fits within the range of this bin 
      * @param dist Distance value to check if its in this range
@@ -72,6 +72,8 @@ class Bin {
      * Note that this is the prefix version only
      */
     Bin& operator++();
+
+    std::string BoundsString() const;
 
  private:
     size_t m_count;
@@ -149,18 +151,22 @@ class Histogram {
    * @param i Bin index
    * @return number of events in histogram bin
    */
-  int32_t binCount(size_t i) { return m_bins[i].getCount(); }
+  int32_t binCount(size_t i) const { return m_bins[i].getCount(); }
 
   /** Get number of bins in histogram
    * @return Number of bins in histogram
    */
-  size_t numBins() { return m_bins.size(); }
+  size_t numBins() const { return m_bins.size(); }
 
   /** Find bin corresponding to a span
    * @param elem Event length
    * @return Bin containing event length
    */
   size_t retrieveBinID(const int32_t& elem) const;
+
+  /** Get the euclidean distance between two histograms
+   */
+  double EuclideanDistance(const Histogram& h) const;
 
 };
 

@@ -137,7 +137,7 @@ void Histogram::initialSpans(size_t num_bins, std::vector<S>* pspanv, size_t min
     std::cerr << "Events: " << pspanv->size() << " Num Bins " << num_bins << " quantile count (hist height) " << bin_cut << std::endl;
   }
 
-  std::cout << "...Events per bin: " << bin_cut << " num bins " << num_bins << std::endl;
+  std::cerr << "...Events per bin: " << bin_cut << " num bins " << num_bins << std::endl;
 
   S last_span = 0;
   size_t tcount = 0; // count events put into bins
@@ -213,4 +213,26 @@ Bin& Bin::operator--() {
   assert(m_count > 0); 
   --m_count;
   return *this;
+}
+
+double Histogram::EuclideanDistance(const Histogram& h) const {
+
+  if (h.numBins() != numBins())
+    throw std::invalid_argument("histograms must be same size for comparison");
+
+  double dist = 0; 
+  for (size_t i = 0; i < m_bins.size(); ++i) {
+    double c = (double)(m_bins[i].getCount() - h.m_bins[i].getCount()) / 10000.0;
+    dist += c*c;
+    std::cerr << " Swap " << m_bins[i].getCount() << " Orig " 
+	      << h.m_bins[i].getCount()
+	      << " " << m_bins[i].BoundsString() << std::endl;
+  }
+
+  return (sqrt(dist));
+  
+}
+
+std::string Bin::BoundsString() const {
+  return "[" + std::to_string(bounds.first) + "," + std::to_string(bounds.second) + "]";
 }

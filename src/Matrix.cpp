@@ -14,25 +14,20 @@
 #include <prng_engine.hpp>
 #include <set>
 
+#include "gif.h"
+
 // should we check length 
 #define LENGTH_CHECK 1
 
-// define a mask so we can store two chr in one uint16_t
-#define CHR1_MASK = 0xFF;
-#define CHR2_MASK = 0xFF00;
+// animation params for gif
+#define WIDTH 1000
+#define COLSTEP 40
+#define DELAY 20 // in 100th of seconds
 
-#define MAX_RAR_SIZE 200e6
-
-// dont include VCFs files with more than this many non-comment lines
-#define PER_FILE_LIMIT 5000
-
+// which rng to use
 #define SITMO_RNG 1
 
 #define MIN_BIN_WIDTH 1000
-
-#define ANIMATION 1
-
-#define MIN_RAR_SIZE 5000
 
 static const size_t INTER = 25;
 
@@ -113,12 +108,12 @@ void Matrix::getSpans(std::vector<S>* pspanv) {
 
 }
 
-void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm) {
+void Matrix::allSwaps() { 
   
   if (!(m_intra+m_inter))
     return;
 
-#ifdef ANIMATION
+#ifdef WIDTH
   // open the animation file if need to
   if (m_anim_step > 0 && id == 0) {
     std::string anim_file = "animation.csv";
@@ -127,6 +122,10 @@ void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm)
     of_anim.open(anim_file.c_str());
     of_anim_hist.open(anim_hist_file.c_str());
     of_anim_hist_small.open(anim_hist_small_file.c_str());
+
+    // open for writing
+    gw = new GifWriter();
+    GifBegin(gw, "matrix.gif", WIDTH, WIDTH, 1);
   }
 #endif
   
@@ -152,19 +151,23 @@ void Matrix::allSwaps() { //pthread_mutex_t * lock, std::vector<Matrix*> * allm)
   std::cerr << "Swapped " << id << " matrices -- " << " shared " << ((double)shared()/(double)(m_intra+m_inter)) << " ";
   std::cerr << printMCMC() << std::endl;
   
-#ifdef ANIMATION
+#ifdef WIDTH
   if (m_anim_step > 0 && id == 0) {
     of_anim.close();
     of_anim_hist.close();
     of_anim_hist_small.close();
+    GifEnd(gw); // close the gif
   }
 #endif
 
-  //pthread_mutex_unlock(lock);
-  
 }
 
 void Matrix::doTransSwap() {
+  
+#ifdef WIDTH
+  if (m_anim_step > 0 && id == 0)
+    Animate();
+#endif
 
   size_t i1 = rand_rows[m_mcmc.swap_tried] % m_vec[INTER].size();
   size_t i2 = rand_cols[m_mcmc.swap_tried] % m_vec[INTER].size();
@@ -173,28 +176,23 @@ void Matrix::doTransSwap() {
   const MatrixValue * mo2 = &m_vec[INTER][i2];
 
   // inter switching to intra not valid
-  if (mo1->c->chr != mo2->r->chr || mo1->r->chr != mo2->c->chr)
+  if (mo1->c->chr == mo2->r->chr || mo1->r->chr == mo2->c->chr)
     return;
 
   // make the swapped vals
   MatrixValue ms1, ms2;
-  MatrixValue::swapIntra(mo1, mo2, ms1, ms2);
+  MatrixValue::swap(mo1, mo2, ms1, ms2);
 
   // add the new ones
   m_vec[INTER][i1] = ms1;
   m_vec[INTER][i2] = ms2;
-
 }
 
 void Matrix::doIntraSwap(size_t chr) {
 
-#ifdef ANIMATION
-  // output the animation
+#ifdef WIDTH
   if (m_anim_step > 0 && id == 0)
-    if ( (m_mcmc.swap_tried % m_anim_step) == 0 || m_mcmc.swap_tried == 0) {
-      std::cerr << "...writing animation for step " << m_mcmc.swap_tried << " matrix id " << id << std::endl;
-      this->toCSV(of_anim, of_anim_hist, of_anim_hist_small, m_mcmc.swap_tried);
-    }
+    Animate();
 #endif
 
   size_t i1 = rand_rows[m_mcmc.swap_tried] % m_vec[chr].size();
@@ -205,7 +203,7 @@ void Matrix::doIntraSwap(size_t chr) {
 
   // make the swapped vals
   MatrixValue ms1, ms2;
-  MatrixValue::swapIntra(mo1, mo2, ms1, ms2);
+  MatrixValue::swap(mo1, mo2, ms1, ms2);
 
   // faster distance calc
   S d3 = std::abs(ms1.r->pos1 - ms1.c->pos1); //ms1.distance();
@@ -241,7 +239,7 @@ void Matrix::doIntraSwap(size_t chr) {
     --hist_swap.m_bins[bin_table[d1]];
     --hist_swap.m_bins[bin_table[d2]];
     
-#ifdef ANIMATION
+#ifdef WIDTH
     if (id == 0 && m_anim_step > 0) {
       m_hist_smallbins.addElem(d3);
       m_hist_smallbins.addElem(d4);
@@ -365,7 +363,6 @@ bool Matrix::LoadBEDPE(const std::string& file) {
 		<< " in file " << file << std::endl;
       return false;
     }
-    
   } // end while read loop
   
   return true;
@@ -419,7 +416,7 @@ bool Matrix::LoadVCF(const std::string& file) {
   return true;
 }
 
-void MatrixValue::swapIntra(const MatrixValue * m1, const MatrixValue * m2, MatrixValue &n1, MatrixValue &n2) {
+void MatrixValue::swap(const MatrixValue * m1, const MatrixValue * m2, MatrixValue &n1, MatrixValue &n2) {
 
   n1.r = m1->r; // switch the pointers
   n1.c = m2->c;
@@ -524,7 +521,9 @@ size_t Matrix::shared() const {
 
 std::ostream& operator<<(std::ostream &out, const MCMCData &m) 
 {
-    out << "   Swap tried: " << m.swap_tried << " accepted " << m.accepted << " (" << SeqLib::percentCalc<size_t>(m.accepted, m.swap_tried) << "%)";
+  out << "   Swap tried: " << SeqLib::AddCommas(m.swap_tried)
+      << " accepted " << SeqLib::AddCommas(m.accepted) 
+      << " (" << SeqLib::percentCalc<size_t>(m.accepted, m.swap_tried) << "%)";
     return out;
 }
 
@@ -533,135 +532,6 @@ std::string Matrix::printMCMC() const {
   ss << m_mcmc;
   return ss.str();
 }
-
-/*void Matrix::dedupe() {
-
-  size_t intra = 0;
-  size_t inter = 0;
-  std::vector<MVec> new_vec;
-
-  for (auto& i : m_vec) {
-
-    std::sort(i.begin(), i.end());
-    new_vec.push_back({});
-
-    for (size_t j = 0; j < (i.size() - 1); j++)
-      if (!(i[j]->r == i[j+1].r) && !(i[j].c == i[j+1].c)) {
-	new_vec.back().push_back(i[j]);
-	//if (i == -1)
-	//	  ++inter;
-	//else
-	//  ++intra;
-      }
-
-  }
-  
-  std::cerr << "Events before dedupe: " << (m_intra+m_inter) << " after " << (inter+intra) << std::endl;
-  m_vec = new_vec;
-  m_intra = intra;
-  m_inter = inter;
-}
-*/
-
-OverlapResult Matrix::checkIntraUnitOverlaps(SeqLib::GRC * grvA) {
-
-  if (!grvA->size() || m_inter_only)
-    return OverlapResult(0,m_intra+m_inter);
-
-  size_t overlap = 0;
-  size_t no_overlap = 0;
-
-  // faster way to do it
-  for (auto& i : m_vec) {
-    for (auto& j : i) {
-      if (grvA->OverlapSameInterval(*j.r, *j.c))
-	++overlap;
-      else 
-	++no_overlap;
-    }
-  }
-  
-  return OverlapResult(overlap, no_overlap);
-  
-  // make grc
-  //bool ff = true;
-  
-  int ii = 0;
-  if (!grc1.size() || !grc2.size()) {  // only make this once
-    grc1.clear(); grc2.clear();
-    for (auto& i : m_vec) {
-      for (auto& j : i) {
-	grc1.add(GR(*j.r, ii));
-	grc2.add(GR(*j.c, ii));
-	assert(!m_inter_only || (j.r->chr != j.c->chr));
-	++ii;
-      }
-    }
-    grc1.CreateTreeMap(); // sorts it, so query order is messed up
-    grc2.CreateTreeMap();
-    
-  }
-
-  std::vector<int32_t> sub1, que1, sub2, que2;
-  grvA->FindOverlaps(grc1, que1, sub1, true);
-  grvA->FindOverlaps(grc2, que2, sub2, true);
-
-  // make subject to query hash
-  std::unordered_map<size_t,size_t> sub1_to_que1;
-  std::unordered_map<size_t,size_t> sub2_to_que2;
-  for (size_t i = 0; i < que2.size(); ++i) {
-    sub2_to_que2[grc2.at(sub2[i]).id] = que2[i]; // each subject (event) should have unique query (bed region). Not vice versa
-  }
-
-  // want to count number of unique subject ids that share the same query id
-  // loop through bed track regions
-  for (size_t i =0; i < sub1.size(); ++i) {
-    std::unordered_map<size_t, size_t>::const_iterator tt = sub2_to_que2.find(grc1.at(sub1[i]).id);
-    if (tt != sub2_to_que2.end() && (int)tt->second == que1[i]) { // q1 (bed region for Row) and q2 (bed region for Column) must be equal for a given subject (event)
-      ++overlap;
-      assert(!m_inter_only); // impossible for intra-unit overlaps if inter-only
-    } else {
-      ++no_overlap;
-    }
-  }
-
-  return OverlapResult(overlap, no_overlap);
-
-}
-
-OverlapResult Matrix::checkOverlaps(SeqLib::GRC * grvA, SeqLib::GRC * grvB) {
-
-  if (!grvA->size() || !grvB->size())
-    return OverlapResult(0,m_intra+m_inter);
-
-  size_t overlap = 0;
-  size_t no_overlap = 0;
-
-  for (auto& i : m_vec)
-    for (auto& j : i) {
-
-      if (grvA->CountOverlaps(*j.r) && grvB->CountOverlaps(*j.c)) {
-	++overlap;
-	if (grvA->size() == grvB->size() && grvA->OverlapSameInterval(*j.r, *j.c)) { // take it back if same bin for same event
-	  --overlap;
-	  ++no_overlap;
-	}
-	continue;
-      }
-      
-      if (grvA->CountOverlaps(*j.c) && grvB->CountOverlaps(*j.r)) {
-	++overlap;
-	if (grvA->size() == grvB->size() && grvA->OverlapSameInterval(*j.r, *j.c)) { // take it back if same bin for same event
-	  ++no_overlap;
-	  --overlap;
-	}
-	continue;
-      }
-      ++no_overlap;
-    }
-
-  return OverlapResult(overlap, no_overlap);
- }
 
 bool Matrix::ValidateLine(const std::string& l) const {
 
@@ -690,9 +560,11 @@ bool Matrix::AddNewMatrixValue(const std::string& c1, const std::string& c2,
     MatrixValue mv(c1, p1, c2, p2);
     
     // only add if within distance bounds
-    if (mv.r->chr >= 0 && mv.c->chr >= 0 && 
-	(mv.r->chr != mv.c->chr || (mv.distance() >= (int)m_min_size && mv.distance() <= (int)m_max_size)) && 
-	(mv.r < mv.c) && (!m_inter_only || mv.r->chr != mv.c->chr) && (!m_intra_only || (m_intra_only && mv.r->chr == mv.c->chr))) {
+    if (mv.r->chr >= 0 && mv.c->chr >= 0 && // valid chromosome
+	(mv.r->chr != mv.c->chr || (mv.distance() >= (int)m_min_size && mv.distance() <= (int)m_max_size)) && // within distance bounds or translocation
+	//(mv.r < mv.c) && // only add one half of the events to not duplicate. For BEDBE, it's already deduped
+	(!m_inter_only || mv.r->chr != mv.c->chr) && // if inter_only, exclude non-translocations 
+	(!m_intra_only || mv.r->chr == mv.c->chr)) { // if intra-only, exclude non-intras
       
       // add the event
       addMatrixValue(mv);
@@ -721,7 +593,203 @@ void Matrix::ScrambleAroundDiagonal() {
 size_t Matrix::size() const {
 
   size_t c = 0;
-  for (auto& i : m_vec)
+  for (auto& i : m_vec) 
     c += i.size();
   return c;
+}
+
+uint8_t * Matrix::AsRGB8Image(uint32_t width, int step) const {
+
+  // chr sizes for hg19
+  const uint32_t csum[24] = {0, 249250621, 492449994, 690472424, 881626700, 1062541960,
+                             1233657027, 1392795690, 1539159712, 1680373143,
+                             1815907890, 1950914406, 
+			     2084766301, 2199936179, 2307285719, 2409817111, 2500171864, 2581367074,
+			     2659444322, 2718573305, 2781598825, 2829728720, 2881033286, 3036303846};
+  
+  uint8_t * out = (uint8_t*) calloc(width*width*4, sizeof(uint8_t));
+
+  // convert to absolute coordinate
+  const double maxlen = 3036303846;
+  for (const auto& c : m_vec) {
+    for (const auto& m : c) {
+      size_t a = std::floor((double)(csum[m.c->chr] + m.c->pos1) / maxlen * width);
+      size_t b = std::floor((double)(csum[m.r->chr] + m.r->pos1) / maxlen * width);
+      a = a >= width ? (width - 1) : a;
+      b = b >= width ? (width - 1) : b;
+      size_t hit = (a * width + b) * 4;
+      out[hit  ] = out[hit  ] < (256-step) ? out[hit  ] + step : 255; //r
+      out[hit+1] = 0;//255;//out[hit+1] < 255 ? out[hit+1] + 1 : 255; //g
+      out[hit+2] = 0;//255;//out[hit+2] < 255 ? out[hit+2] + 1 : 255; //b
+      out[hit+3] = 0; //out[hit+3] =  < 255 ? out[hit+3] + 1 : 255; //a
+    }
+  }
+
+  return out;
+}
+
+uint8_t * Matrix::AsBMPImage(uint32_t width, int step) const {
+
+  // chr sizes for hg19
+  const uint32_t csum[24] = {0, 249250621, 492449994, 690472424, 881626700, 1062541960,
+                             1233657027, 1392795690, 1539159712, 1680373143,
+                             1815907890, 1950914406, 
+			     2084766301, 2199936179, 2307285719, 2409817111, 2500171864, 2581367074,
+			     2659444322, 2718573305, 2781598825, 2829728720, 2881033286, 3036303846};
+  
+  uint8_t * out = (uint8_t*) calloc(width*width*3, sizeof(uint8_t));
+
+  // convert to absolute coordinate
+  const double maxlen = 3036303846;
+  for (const auto& c : m_vec) {
+    for (const auto& m : c) {
+      size_t a = std::floor((double)(csum[m.c->chr] + m.c->pos1) / maxlen * width);
+      size_t b = std::floor((double)(csum[m.r->chr] + m.r->pos1) / maxlen * width);
+      a = a >= width ? (width - 1) : a;
+      b = b >= width ? (width - 1) : b;
+      size_t hit = (a * width + b) * 3;
+      out[hit  ] = 0; //out[hit  ] < (256-step) ? out[hit  ] + step : 255; //b
+      out[hit+1] = 0; //out[hit+1] < 255 ? out[hit+1] + 1 : 255;           //g
+      out[hit+2] = out[hit+2] < (256-step) ? out[hit+2] + step : 255;      //r
+    }
+  }
+
+  return out;
+}
+
+Matrix::~Matrix() { 
+  if (rand_rows)
+    free(rand_rows); 
+  if (rand_cols)
+    free(rand_cols); 
+  if (gw)
+      delete gw;
+}
+
+void Matrix::Animate() {
+
+  // output the animation
+  if ( (m_mcmc.swap_tried % m_anim_step) == 0 || m_mcmc.swap_tried == 0) {
+    uint8_t * image = AsRGB8Image(WIDTH, COLSTEP);
+    GifWriteFrame(gw, image, WIDTH, WIDTH, DELAY);
+    std::cerr << "...animating step " << m_mcmc.swap_tried 
+      //<< " Small-bin Hist Distance " << m_hist_smallbins.EuclideanDistance(m_orig->m_hist_smallbins) 
+	      << " Large-bin Hist Distance " << hist_swap.EuclideanDistance(m_orig->hist_swap) << std::endl;
+    hist_swap.toCSV(of_anim_hist); // write the histograms
+    m_hist_smallbins.toCSV(of_anim_hist_small);
+  }
+
+}
+
+void Matrix::AddBedElements(const std::string& b, BEDIntervals& bi) {
+
+  // track which bed tracks we are tracking
+  bed_list.push_back(b);
+
+  // trackwhat is in and out of this BED track
+  size_t in = 0, out = 0;
+
+  for (auto& chr : m_vec) {
+    for (auto& d : chr) {
+      d.r->AddBED(b, bi); // eg SINE and grc of SINE track
+      d.c->AddBED(b, bi);
+
+      // sanity check. maybe cut later
+      assert((d.r->olap_element[b] >= 0) == (bi.grc.CountOverlaps(*d.r) > 0));
+      assert((d.c->olap_element[b] >= 0) == (bi.grc.CountOverlaps(*d.c) > 0));
+      
+      // update
+      if (d.r->olap_element[b] >= 0)
+	++in;
+      else
+	++out;
+
+      if (d.c->olap_element[b] >= 0)
+	++in;
+      else
+	++out;
+      
+    }
+  }
+      
+  std::cerr << "\tTrack " << b << " In: " << SeqLib::AddCommas(in)
+	    << " Out: " << out << " Total track zwidth: " 
+	    << SeqLib::AddCommas(bi.grc.TotalWidth()) << std::endl;
+}
+
+
+std::string Matrix::OutputOverlapsIntraExclusive() const {
+
+  if (!size()) // empty matrix
+    return std::string();
+
+  std::stringstream ss;
+
+  // run the A==A tracks (eg SINE-SINE)
+  for (const auto& a : bed_list) {
+    size_t in = 0, out = 0;
+    for (const auto& chr : m_vec) {
+      for (const auto& d : chr) {
+	if (d.r->olap_element[a] == d.c->olap_element[a] && d.r->olap_element[a] >= 0)
+	  ++in; // overlap is good
+	else
+	  ++out;
+      }
+    }
+    ss << a << "\t" << a << "\t" << in << "\t" << out << "\t" << id << std::endl;
+  }
+
+  return ss.str();
+
+}
+
+std::string Matrix::OutputOverlapsInterExclusive() const {
+
+  if (!size()) // empty matrix
+    return std::string();
+
+  std::stringstream ss;
+
+  // run the A==A tracks (eg SINE-SINE)
+  for (const auto& a : bed_list) {
+    for (const auto& b : bed_list) {
+      if (a == b) { 
+	size_t in = 0, out = 0;
+	for (const auto& chr : m_vec) {
+	  for (const auto& d : chr) {
+	    if (d.r->olap_element[a] >= 0 && d.c->olap_element[a] >= 0)
+	      ++in; // overlap is good
+	    else
+	      ++out;
+	  }
+	}
+	ss << a << "\t" << a << "\t" << in << "\t" << out << "\t" << id << std::endl;
+      }
+    }
+  }
+  
+  // not A != B ones
+  for (const auto& a : bed_list) {
+    for (const auto& b : bed_list) {
+      if (a < b) { // only take half of them (so don't do both SINE/LINE and LINE/SINE)
+	size_t in = 0, out = 0;
+	for (const auto& chr : m_vec) {
+	  for (const auto& d : chr) {
+	    // check if (point R in bedA && C in bedB) || (C in bedA && R in bedB)
+	    // aelso since this is exclusive, check that they are not in the SAME elem
+	    bool AB = d.r->olap_element[a] >= 0 && d.c->olap_element[b] >= 0;
+	    bool BA = d.r->olap_element[b] >= 0 && d.c->olap_element[a] >= 0;
+	    if (AB || BA)
+	      ++in; // overlap is good
+	    else
+	      ++out;
+	  }
+	}
+	ss << a << "\t" << b << "\t" << in << "\t" << out << "\t" << id << std::endl;
+      }
+    }
+  }
+
+  return ss.str();
+  
 }

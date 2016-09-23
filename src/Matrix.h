@@ -14,7 +14,9 @@
 #include "SeqLib/GenomicRegion.h"
 #include "SeqLib/GenomicRegionCollection.h"
 #include "Squares.h"
+#include "BEDIntervals.h"
 
+struct GifWriter;
 typedef uint32_t S;    
 typedef std::pair<size_t, size_t> OverlapResult;
 
@@ -53,15 +55,33 @@ struct MCMCData {
 
 };
 
+// store the name of a BED track, and the element in the BED that the
+// 1D point overlaps (-1 for none)
+typedef std::unordered_map<std::string, int> BedAndHitIDMap;
+typedef std::pair<std::string, int> BedAndHitID;
+
 class MatrixPoint : public SeqLib::GenomicRegion {
 
  public: 
 
-  MatrixPoint(int32_t c, int32_t p1, int32_t p2) : SeqLib::GenomicRegion(c, p1, p2) {}
+ MatrixPoint(int32_t c, int32_t p1, int32_t p2) : SeqLib::GenomicRegion(c, p1, p2) { strand = '*'; }
 
-  MatrixPoint(const std::string& c, const std::string& p1, const std::string& p2, const SeqLib::BamHeader& h) : SeqLib::GenomicRegion(c, p1, p2, h) {}
+ MatrixPoint(const std::string& c, const std::string& p1, const std::string& p2, const SeqLib::BamHeader& h) : SeqLib::GenomicRegion(c, p1, p2, h) { strand = '*'; }
 
-  std::vector<int> olap_element; // for each track, store what element this overlaps
+  // add a BED track and check if this point overlaps with it
+  void AddBED(const std::string& b, BEDIntervals& bi) {
+    std::vector<int> out = bi.grc.FindOverlappedIntervals(*this, true);
+    if (!out.size()) {
+      olap_element.insert(BedAndHitID(b, -1));
+      return;
+    }
+    assert(out.size() == 1); // should not have overlapping intervals
+    olap_element.insert(BedAndHitID(b, out[0]));
+  }
+
+  // for each track, store what element this overlaps
+  BedAndHitIDMap olap_element; 
+
 };
 
 /** Stores a single entry of a Matrix
@@ -91,7 +111,7 @@ class MatrixValue {
    * @param n1 New matrix value 1
    * @param n2 New matrix value 2
    */
-  static void swapIntra(const MatrixValue * m1, const MatrixValue * m2, MatrixValue &n1, MatrixValue &n2);
+  static void swap(const MatrixValue * m1, const MatrixValue * m2, MatrixValue &n1, MatrixValue &n2);
 
   /** Order MatrixValue objects by their distance (span)
    */
@@ -150,12 +170,7 @@ class Matrix {
   Matrix();
 
   /** Delete this Matrix and free memory. */
-  ~Matrix() { 
-    if (rand_rows)
-      free(rand_rows); 
-    if (rand_cols)
-      free(rand_cols); 
-  }
+  ~Matrix(); 
   
   /** Add a new MatrixValue to this Matrix */
   void addMatrixValue(const MatrixValue &mv);
@@ -175,6 +190,9 @@ class Matrix {
 
   void doTransSwap();
   void doIntraSwap(size_t chr);
+
+  /** Check all of the 1D overlaps with this BED */
+  void AddBedElements(const std::string& b, BEDIntervals& bi);
 
   /** Generate all of the random numbers for row and col swaps
    * 
@@ -226,9 +244,15 @@ class Matrix {
   /** Return the total number of rearrangements stored here */
   size_t size() const;
 
-  /** Remove duplicate breakpoint pairs
+  /** Retrieve as a binned image 
+   * step is the amount to increment red for each hit (up to 255)
    */
-  void dedupe();
+  uint8_t* AsRGB8Image(uint32_t width, int step) const;
+
+  /** Retrieve as a binned image 
+   * step is the amount to increment red for each hit (up to 255)
+   */
+  uint8_t* AsBMPImage(uint32_t width, int step) const;
 
   /** Loop through all of the Matrix elements and fill the quantile histogram
    *
@@ -259,7 +283,6 @@ class Matrix {
    * output an animation
    */
   void setAnimationStep(size_t anim) {
-    std::cout << "Setting Matrix " << id << " to output animation csv." << std::endl;
     m_anim_step = anim;
   }
 
@@ -278,13 +301,8 @@ class Matrix {
   /** Set the maximum allowed rearrangement distance */
   void SetMaxSize(int s) { m_max_size = s >= 0 ? s : 0; }
 
-  /** Check for events that span two GenomicRegionVector objects  */
-  OverlapResult checkOverlaps(SeqLib::GRC* grvA, SeqLib::GRC * grvB);
-
-  OverlapResult checkIntraUnitOverlaps(SeqLib::GRC * grvA);
-
   //double * temps; // pre-compute all probabilites at each temp, since same for every matrix
-  uint16_t** probs; // an array holding the arrays of probabilites for each shift 
+  uint16_t** probs = nullptr; // an array holding the arrays of probabilites for each shift 
   uint8_t* bin_table;
 
   /** Store the matrix in binary form
@@ -308,10 +326,6 @@ class Matrix {
 
   uint8_t* rand_chr;
   
-  // hold treed genomic region collection of events for doing findOverlaps in checkIntraUnitOverlaps
-  SeqLib::GenomicRegionCollection<GR> grc1;
-  SeqLib::GenomicRegionCollection<GR> grc2; 
-  
   // map to store sparse matrix entries, per chrom
   std::vector<MVec> m_vec;
   
@@ -322,8 +336,23 @@ class Matrix {
   Histogram hist_swap; // histogram after N swaps 
 
   size_t id = 0; ///< ID for this matrix
-  
+
+  // at the end of swapping, output a formatted
+  // string with the output results (for inter-interval exclusive)
+  std::string OutputOverlapsInterExclusive() const;
+
+  // at the end of swapping, output a formatted
+  // string with the output results (for rars with both ends in 
+  // the exact same interval)
+  std::string OutputOverlapsIntraExclusive() const;
+
  private:
+
+  std::vector<std::string> bed_list; // which bed files are we tracking
+
+  Matrix * m_orig = nullptr; // true data matrix
+
+  GifWriter * gw = nullptr; // for writing the animation
 
   std::unordered_map<std::string, bool> m_orig_map;
 
@@ -360,6 +389,8 @@ class Matrix {
 			 const std::string& p1, const std::string& p2);
 
   void __initialize_mvec();
+
+  void Animate();
     
 };
 

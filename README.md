@@ -4,6 +4,17 @@
 
 Tools for 1D and 2D genomic significance analysis
 
+Table of contents
+=================
+
+  * [Installation](#installation)
+  * [Description](#description)
+  * [Components](#components)
+    * [Swap](#swap)
+    * [Sim](#sim)
+  * [Example Recipes](#examples-recipes)
+  * [Attributions](#attributions)
+
 Installation
 ------------
 ```
@@ -25,6 +36,29 @@ make
 make install
 ```
 
+Description
+-----------
+*ginseng*<sup>1</sup> is set of tools for determing genome-wide signficance for 2-dimensional 
+genomic data. The primary use case is for structural variations (aka rearrangements) in cancer, but
+the methods in principle could be applied to other data sets (eg HiC interactions).
+
+Components
+----------
+
+#### Swap
+Swap performs a non-parametric test for enrichment of 2D connections between or within elements.
+```
+## run the swaps
+ginseng swap -n $num_matrices -b $num_bins -k $num_swaps \
+	-p $cores -i $bedpe_list -a $my_id -B $track_list -A $animation_step \
+	--min-span $min --max-span $max
+
+## plot the results
+R/swap-animate.R -a $my_id
+```
+
+#### Sim
+
 Support
 -------
 This project is being actively developed and maintained by Jeremiah Wala (jwala@broadinstitute.org). 
@@ -35,8 +69,10 @@ Ginseng is being developed in the Beroukhim Lab of Dana-Farber and the Broad Ins
 Imielinski Lab of Cornell University and the New York Genome Center.
 
 Development, support, guidance, testing:
+* Ofer Shapira - Computational Biologist, Dana Farber Cancer Institute
 * Steve Schumacher - Computational Biologist, Dana Farber Cancer Institute
 * Marcin Imielinski - Assistant Professor, Cornell University
 * Rameen Beroukhim - Assistant Professor, Harvard Medical School
 
 [license]: https://github.com/jwalabroad/ginseng/blob/master/LICENSE
+

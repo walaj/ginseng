@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <ostream>
 #include <pthread.h>
-#include <list>
 #include <cmath>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -15,11 +14,12 @@
 #include <cassert>
 #include <fstream>
 
-#include "gzstream.h"
+#include "pthread-lite.h"
 #include "Matrix.h"
 #include "SeqLib/GenomicRegionCollection.h"
+#include "BEDIntervals.h"
 
-typedef std::unordered_map<std::string, SeqLib::GRC> BEDMap;
+typedef std::unordered_map<std::string, BEDIntervals> BEDMap;
 typedef std::vector<SeqLib::GRC> BEDVec;
 
 // Just a number to define how many sig-figs to go out on for randomness in temperature draw
@@ -27,7 +27,7 @@ typedef std::vector<SeqLib::GRC> BEDVec;
 #define TRAND 65535
 
 // temperature to start at
-#define TMAX 100
+#define TMAX 1000
 
 class Matrix;
 
@@ -35,151 +35,24 @@ void import_bed_files(const std::string& bed_list, BEDMap& all_bed);
 void parseMatrixOptions(int argc, char** argv);
 void readStoredMatrices(const std::string& file);
 int runSwap(int argc, char** argv);
+void PrecalculateTemps(Matrix* m);
+void PrecalculateHistogramBins(Matrix* m);
+void PrerandomizeChromosomes(Matrix* m);
+void printinfo();
 
 static std::ofstream of_anim; 
 static std::ofstream of_anim_hist; 
 static std::ofstream of_anim_hist_small; 
 
-template <typename T> class wqueue
-{ 
+// store results for all matrices that hit one thread
+struct SwapThreadItem {
 
-  public:
-  wqueue() {
-    pthread_mutex_init(&m_mutex, NULL);
-    pthread_cond_init(&m_condv, NULL);
-  }
-
-  ~wqueue() {
-    pthread_mutex_destroy(&m_mutex);
-    pthread_cond_destroy(&m_condv);
-  }
-
-  void add(T item) {
-    pthread_mutex_lock(&m_mutex);
-    m_queue.push_back(item);
-    pthread_cond_signal(&m_condv);
-    pthread_mutex_unlock(&m_mutex);
-  }
-
-  T remove() {
-    pthread_mutex_lock(&m_mutex);
-    while (m_queue.size() == 0) {
-      pthread_cond_wait(&m_condv, &m_mutex);
-    }
-    T item = m_queue.front();
-    m_queue.pop_front();
-    pthread_mutex_unlock(&m_mutex);
-    return item;
-  }
-
-  int size() {
-    pthread_mutex_lock(&m_mutex);
-    int size = m_queue.size();
-    pthread_mutex_unlock(&m_mutex);
-    return size;
-  }
-
-  std::list<T>   m_queue;
-  pthread_mutex_t m_mutex;
-  pthread_cond_t  m_condv;
-
-};
-
-class SwapThread {
-
-  public:
-  SwapThread() : m_tid(0), m_running(0), m_detached(0) {}
-  
-  ~SwapThread()
-  {
-    if (m_running == 1 && m_detached == 0) {
-      pthread_detach(m_tid);
-    }
-    if (m_running == 1) {
-      pthread_cancel(m_tid);
-    }
-  }
-
-  static void* runThread(void* arg)
-  {
-    return ((SwapThread*)arg)->run();
-  }
+  SwapThreadItem(size_t i) : id(i) {}
  
-  int start()
-  {
-    int result = pthread_create(&m_tid, NULL, runThread, this);
-    if (result == 0) {
-      m_running = 1;
-    }
-    return result;
-  }
+  size_t id; // id of this thread
 
-  int join()
-  {
-    int result = -1;
-    if (m_running == 1) {
-      result = pthread_join(m_tid, NULL);
-      if (result == 0) {
-	m_detached = 1;
-      }
-    }
-    return result;
-  }
- 
-  int detach()
-  {
-    int result = -1;
-    if (m_running == 1 && m_detached == 0) {
-      result = pthread_detach(m_tid);
-      if (result == 0) {
-	m_detached = 1;
-      }
-    }
-    return result;
-  }
-
-  pthread_t self() {
-    return m_tid;
-  }
-
-  virtual void* run() = 0;
- 
-private:
-  pthread_t  m_tid;
-  int        m_running;
-  int        m_detached;
-};
-
-template <class T>
-  class ConsumerThread : public SwapThread {
- 
-public:
-
-  ConsumerThread(wqueue<T*>& queue, bool verbose) : m_queue(queue), m_verbose(verbose) {}
- 
-  void* run() {
-    // Remove 1 item at a time and process it. Blocks if no items are 
-    // available to process.
-    for (int i = 0;; i++) {
-      //if (m_verbose)
-	//printf("thread %lu, loop %d - waiting for item...\n", 
-	//     (long unsigned int)self(), i);
-      T* item = (T*)m_queue.remove();
-      item->run();
-      //m_output->push_back(item->output());
-      delete item;
-      if (m_queue.size() == 0)
-        return NULL;
-    }
-    return NULL;
-  }
-
-  //std::vector<O*> getThreadOutput() {return m_output;}
-
- private: 
-  wqueue<T*>& m_queue;
-  bool m_verbose;
-
+  std::stringstream inter_results; // results for points that span intervals
+  std::stringstream intra_results; // results for points that are contained in one interval
 };
 
 /** Class to hold work items for swapping. 
@@ -193,62 +66,54 @@ class SwapWorkItem {
 
 private:
 
-  Matrix * m_orig_mat;
-  std::vector<Matrix*> * m_all_mats;
-  pthread_mutex_t * m_lock;
-  Matrix * m_this_mat;
-  size_t m_id;
-  SeqHashMap<std::string, SeqLib::GRC> *m_bed_mat;
-
-  std::ofstream * m_results;
-  std::ofstream * m_results2;
-  ogzstream * m_oz_matrix;
-  Matrix * summed_results;
+  Matrix * m_orig_mat; // store pointer to orig data to copy to this swap run
+  Matrix * m_this_mat; // the matrix for this work item
+  size_t m_id;         // some unique id (passed in)
+  
+  const BEDMap * m_bed_mat; // list of bed file
 
 public:
 
   /** Create a new swap run to do all steps on one matrix
    * @param mat Matrix to be swapped
    */
-  SwapWorkItem(Matrix* mat, std::vector<Matrix*> *all_mats, pthread_mutex_t * lock, size_t id, 
-	       std::unordered_map<std::string, SeqLib::GRC> *mB, std::ofstream * ro, std::ofstream * ro2, ogzstream * oz, 
-	       Matrix* sr)  
-    : m_orig_mat(mat), m_all_mats(all_mats), m_lock(lock), m_id(id), m_bed_mat(mB), m_results(ro), m_results2(ro2), 
-    m_oz_matrix(oz), summed_results(sr)
-  {
-    
-  }
-
-  /// Destroy this work item
-    ~SwapWorkItem() { }
-
+  SwapWorkItem(Matrix* mat, size_t id, 
+	       const BEDMap *mB)
+    : m_orig_mat(mat), m_id(id), m_bed_mat(mB) {}
 
   /** Kick off all of the swapping and annealing
    * @return true if allSwaps completed
    */
-  bool run() 
-  { 
-    m_this_mat = new Matrix(*m_orig_mat);
-    m_this_mat->id = m_id;
+  bool run(SwapThreadItem* thread_data) { 
 
+    m_this_mat = new Matrix(*m_orig_mat); // copy orig data to this mat
+    m_this_mat->m_orig = m_orig_mat;       // let new one see original
+    m_this_mat->id = m_id;                // set unique id
+#ifdef DEBUG_SWAP
     pthread_mutex_lock(m_lock);  
-    //std::cerr << "...starting swaps on " << m_id << std::endl;
+    std::cerr << "...starting swaps on " << m_id << std::endl;
     pthread_mutex_unlock(m_lock);
-    m_this_mat->allSwaps(); 
+#endif
+    m_this_mat->allSwaps();               // do the actual swaps
 
+    thread_data->inter_results << m_this_mat->OutputOverlapsInterExclusive();
+    thread_data->intra_results << m_this_mat->OutputOverlapsIntraExclusive();
+    
+    /*
     // get the overlaps
     std::unordered_map<std::string, OverlapResult> all_overlaps;
     std::unordered_map<std::string, bool> ovl_ovl_seen;
-    std::stringstream ss, ss2;
-    //std::cerr << "...checking overlaps on " << m_id << std::endl;
-    for (auto& i : *m_bed_mat) {
-      for (auto& j : *m_bed_mat) {
+
+    for (const auto& i : *m_bed_mat) {
+      for (const auto& j : *m_bed_mat) {
 	if (i.first < j.first || (!ovl_ovl_seen.count(i.first) && i.first==j.first) ) { // don't need to do each one twice
 	  OverlapResult ovl = m_this_mat->checkOverlaps(&i.second, &j.second);
 	  std::string ovl_name = i.first + "," + j.first;
 	  all_overlaps[ovl_name] = ovl;
-	  //std::cout << " Overlap for "  << ovl_name << " is "  << ovl.first << std::endl;      
-	  ss << ovl_name << "," << ovl.first << "," << ovl.second << "," << m_this_mat->id  << std::endl; 
+#ifdef DEBUG_SWAP
+	  std::cerr << " Overlap for "  << ovl_name << " is "  << ovl.first << std::endl;      
+#endif
+	  thread_data->inter_results << ovl_name << "," << ovl.first << "," << ovl.second << "," << m_this_mat->id  << std::endl; 
 	  if (i.first==j.first)
 	    ovl_ovl_seen[i.first] = true;
 	}
@@ -256,21 +121,17 @@ public:
     }
 
     // check intra unit overlaps
-    //std::cerr << "...checking intra-overlaps on " << m_id << std::endl;
-    for (auto& i : *m_bed_mat) {
+#ifdef DEBUG_SWAP
+    std::cerr << "...checking intra-overlaps on " << m_id << std::endl;
+#endif
+    for (const auto& i : *m_bed_mat) {
       if (do_intra_overlap(i.first)) {
 	OverlapResult ovl = m_this_mat->checkIntraUnitOverlaps(&i.second);
-	ss2 << i.first << "," << ovl.first << "," << ovl.second << "," << m_this_mat->id << std::endl; 
+	thread_data->intra_results << i.first << "," << ovl.first << "," << ovl.second << "," << m_this_mat->id << std::endl; 
       }
     }
+    */
 
-    pthread_mutex_lock(m_lock);  
-    //summed_results->add(*m_this_mat);
-    (*m_results)  << ss.str();
-    (*m_results2) << ss2.str();
-    //m_this_mat->writeGzip(m_oz_matrix);
-    pthread_mutex_unlock(m_lock);
-    
     delete m_this_mat;
     return true; 
   }

@@ -148,6 +148,7 @@ fancy_scientific <- function(l) {
                                         #     parse(text=l)
 }
 
+
 ## get the csv files
                                         #f <- dir()
                                         #f <- f[grepl("^anim.*.csv", f)]
@@ -164,8 +165,6 @@ fancy_scientific <- function(l) {
 
 ## set the non-scrambled
 if(file.exists(paste0("animation.csv"))) {
-  print("...reading CSV file")
-                                        #bt <- read.delim(opt$input, sep=",", header=FALSE)
   print("...reading animation csv")
   bt <- fread(paste0("animation.csv"))
   setnames(bt, c("V1","V2","V3","V4","V5","V6"), c("chr1","pos1","chr2", "pos2", "count", "step")) ##, "T", "accepted","shared")
@@ -174,11 +173,10 @@ if(file.exists(paste0("animation.csv"))) {
     bt <- bt[chr1 == (opt$chrom-1) | chr2 == (opt$chrom-1)]
     print(nrow(bt))
   }
-  bt[, type := ifelse(step==0, "Data", "Swap")]
+  bt$type = 'Swap'
+  bt$type[bt$step==0] <- "Data"
   bt[, d := ifelse(chr1==chr2, abs(pos1-pos2),-1)]
   data.ix = bt$type == "Data"
-                                        #if (any(bt$d > 0))
-                                        #  becdf <- ecdf(bt$d[data.ix & bt$d > 0])
   mx = max(bt$step)
   
   ## read in the histogram data
@@ -458,7 +456,6 @@ afunc <- function(bt, steps, data.ix) {
 if (!grepl("imagemagick", Sys.getenv("PATH")))
   stop("Need to have ImageMagick installed for use with R animation package. Broad: use ImageMagick")
 
-
 ## make the animation
 r <- floor(1/opt$interval)
 steps <- c(rep(0,r),unique(bt$step), rep(unique(bt$step)[length(unique(bt$step))], r))
@@ -470,7 +467,7 @@ if (opt$firstandlast)
 #dev.off()
 print(steps)
 print("...making GIF")
-saveGIF(afunc(bt, steps, data.ix), movie.name=paste0(aid, ".swap.gif"), interval=opt$interval, ani.width=opt$width, ani.height=opt$height, ani.dev='jpeg')
+zsaveGIF(afunc(bt, steps, data.ix), movie.name=paste0(aid, ".swap.gif"), interval=opt$interval, ani.width=opt$width, ani.height=opt$height, ani.dev='jpeg')
 print("...DONE making GIF")
 
 #####
