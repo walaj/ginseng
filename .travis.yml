@@ -1,7 +1,16 @@
 language: cpp
 
-compiler:
- - gcc-5.3
+matrix:
+  include:
+    - env: GCC_VERSION=5 CPP=11 LIBCXX=Off
+      os: linux
+      addons: &gcc5
+        apt:
+          packages:
+            - g++-5
+            - gcc-5
+          sources:
+            - ubuntu-toolchain-r-test
 
 before_install: 
 - git submodule update --init --recursive
