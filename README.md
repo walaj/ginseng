@@ -81,3 +81,4 @@ Development, support, guidance, testing:
 
 [license]: https://github.com/jwalabroad/ginseng/blob/master/LICENSE
 
+<sup>1</sup> Google's suggestion for the query ``gensig``
