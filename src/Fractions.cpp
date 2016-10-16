@@ -4,6 +4,12 @@ using namespace SeqLib;
 
 FracRegion::FracRegion(const std::string& c, const std::string& p1, const std::string& p2, const SeqLib::BamHeader& h, const std::string& f) : SeqLib::GenomicRegion(c, p1, p2, h)
   {
+    
+    if (f.empty()) {
+      frac = DUMMY_FLOAT;
+      return;
+    }
+
     // convert frac to double
     try { 
       frac = std::stod(f);
@@ -19,7 +25,7 @@ std::ostream& operator<<(std::ostream& out, const FracRegion& f) {
   return out;
 }
 
-void Fractions::readFromBed(const std::string& file, const SeqLib::BamHeader& h) {
+void Fractions::readFromBed(const std::string& file, const SeqLib::BamHeader& h, bool scored) {
   
   std::ifstream iss(file.c_str());
   if (!iss || file.length() == 0) { 
@@ -44,7 +50,7 @@ void Fractions::readFromBed(const std::string& file, const SeqLib::BamHeader& h)
 	case 2 : pos2 = val; break;
 	case 3 : f = val; break;
 	}
-	if (counter >= 3)
+	if (counter >= 3 || (counter == 2 && !scored))
 	  break;
 	++counter;
 	
@@ -54,6 +60,13 @@ void Fractions::readFromBed(const std::string& file, const SeqLib::BamHeader& h)
 	}
 	
       }
+
+      //remove chr
+      // https://www.safaribooksonline.com/library/view/c-cookbook/0596007612/ch04s12.html
+      const std::string s = "chr";
+      std::string::size_type i = chr.find(s);
+      if (i != std::string::npos)
+	chr.erase(i, s.length());
 
       // construct the GenomicRegion
       FracRegion ff(chr, pos1, pos2, h, f);

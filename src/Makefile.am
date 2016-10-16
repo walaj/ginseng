@@ -11,6 +11,6 @@ ginseng_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/ht
 
 ginseng_LDFLAGS = -L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -fopenmp
 
-ginseng_SOURCES = gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp \
+ginseng_SOURCES = FishModel.cpp gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp \
 		prng_engine.hpp Fractions.cpp FishHookInterval.cpp sim.cpp fishhook.cpp \
-		Model.cpp BEDIntervals.cpp
+		Model.cpp BEDIntervals.cpp Events.cpp

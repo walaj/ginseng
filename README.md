@@ -62,6 +62,16 @@ R/swap-animate.R -a $my_id
 ```
 
 #### Sim
+```
+## simulate 1M rearrangements with a 1/L power law distribution using additive generation
+COV=data/cov.bed ## some BED file with covered regions (eg sufficient mapping quality)
+ginseng sim $COV -m A -N 1000000 > data/model_additive.bed
+
+## simulate 1M rearrangements with a 1/L^2 power law, using multiplicative generation
+ginseng sim $COV -m M -N 1000000 > data/model_multiplicative.bed
+
+```
+
 
 Support
 -------

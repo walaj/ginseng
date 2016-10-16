@@ -44,12 +44,13 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_ginseng_OBJECTS = ginseng-gzstream.$(OBJEXT) \
-	ginseng-ginseng.$(OBJEXT) ginseng-swap.$(OBJEXT) \
-	ginseng-Histogram.$(OBJEXT) ginseng-Matrix.$(OBJEXT) \
-	ginseng-Fractions.$(OBJEXT) ginseng-FishHookInterval.$(OBJEXT) \
-	ginseng-sim.$(OBJEXT) ginseng-fishhook.$(OBJEXT) \
-	ginseng-Model.$(OBJEXT)
+am_ginseng_OBJECTS = ginseng-FishModel.$(OBJEXT) \
+	ginseng-gzstream.$(OBJEXT) ginseng-ginseng.$(OBJEXT) \
+	ginseng-swap.$(OBJEXT) ginseng-Histogram.$(OBJEXT) \
+	ginseng-Matrix.$(OBJEXT) ginseng-Fractions.$(OBJEXT) \
+	ginseng-FishHookInterval.$(OBJEXT) ginseng-sim.$(OBJEXT) \
+	ginseng-fishhook.$(OBJEXT) ginseng-Model.$(OBJEXT) \
+	ginseng-BEDIntervals.$(OBJEXT) ginseng-Events.$(OBJEXT)
 ginseng_OBJECTS = $(am_ginseng_OBJECTS)
 ginseng_DEPENDENCIES = $(top_builddir)/SeqLib/src/libseqlib.a \
 	$(top_builddir)/SeqLib/htslib/libhts.a \
@@ -177,9 +178,9 @@ ginseng_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/ht
 		$(top_builddir)/apophenia-pkg/lib/libapophenia.a -lgsl -lgslcblas -lsqlite3
 
 ginseng_LDFLAGS = -L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -fopenmp
-ginseng_SOURCES = gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp \
+ginseng_SOURCES = FishModel.cpp gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp \
 		prng_engine.hpp Fractions.cpp FishHookInterval.cpp sim.cpp fishhook.cpp \
-		Model.cpp
+		Model.cpp BEDIntervals.cpp Events.cpp
 
 all: all-am
 
@@ -262,7 +263,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+include ./$(DEPDIR)/ginseng-BEDIntervals.Po
+include ./$(DEPDIR)/ginseng-Events.Po
 include ./$(DEPDIR)/ginseng-FishHookInterval.Po
+include ./$(DEPDIR)/ginseng-FishModel.Po
 include ./$(DEPDIR)/ginseng-Fractions.Po
 include ./$(DEPDIR)/ginseng-Histogram.Po
 include ./$(DEPDIR)/ginseng-Matrix.Po
@@ -286,6 +290,20 @@ include ./$(DEPDIR)/ginseng-swap.Po
 #	source='$<' object='$@' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+ginseng-FishModel.o: FishModel.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-FishModel.o -MD -MP -MF $(DEPDIR)/ginseng-FishModel.Tpo -c -o ginseng-FishModel.o `test -f 'FishModel.cpp' || echo '$(srcdir)/'`FishModel.cpp
+	$(am__mv) $(DEPDIR)/ginseng-FishModel.Tpo $(DEPDIR)/ginseng-FishModel.Po
+#	source='FishModel.cpp' object='ginseng-FishModel.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-FishModel.o `test -f 'FishModel.cpp' || echo '$(srcdir)/'`FishModel.cpp
+
+ginseng-FishModel.obj: FishModel.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-FishModel.obj -MD -MP -MF $(DEPDIR)/ginseng-FishModel.Tpo -c -o ginseng-FishModel.obj `if test -f 'FishModel.cpp'; then $(CYGPATH_W) 'FishModel.cpp'; else $(CYGPATH_W) '$(srcdir)/FishModel.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-FishModel.Tpo $(DEPDIR)/ginseng-FishModel.Po
+#	source='FishModel.cpp' object='ginseng-FishModel.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-FishModel.obj `if test -f 'FishModel.cpp'; then $(CYGPATH_W) 'FishModel.cpp'; else $(CYGPATH_W) '$(srcdir)/FishModel.cpp'; fi`
 
 ginseng-gzstream.o: gzstream.C
 	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-gzstream.o -MD -MP -MF $(DEPDIR)/ginseng-gzstream.Tpo -c -o ginseng-gzstream.o `test -f 'gzstream.C' || echo '$(srcdir)/'`gzstream.C
@@ -426,6 +444,34 @@ ginseng-Model.obj: Model.cpp
 #	source='Model.cpp' object='ginseng-Model.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Model.obj `if test -f 'Model.cpp'; then $(CYGPATH_W) 'Model.cpp'; else $(CYGPATH_W) '$(srcdir)/Model.cpp'; fi`
+
+ginseng-BEDIntervals.o: BEDIntervals.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-BEDIntervals.o -MD -MP -MF $(DEPDIR)/ginseng-BEDIntervals.Tpo -c -o ginseng-BEDIntervals.o `test -f 'BEDIntervals.cpp' || echo '$(srcdir)/'`BEDIntervals.cpp
+	$(am__mv) $(DEPDIR)/ginseng-BEDIntervals.Tpo $(DEPDIR)/ginseng-BEDIntervals.Po
+#	source='BEDIntervals.cpp' object='ginseng-BEDIntervals.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-BEDIntervals.o `test -f 'BEDIntervals.cpp' || echo '$(srcdir)/'`BEDIntervals.cpp
+
+ginseng-BEDIntervals.obj: BEDIntervals.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-BEDIntervals.obj -MD -MP -MF $(DEPDIR)/ginseng-BEDIntervals.Tpo -c -o ginseng-BEDIntervals.obj `if test -f 'BEDIntervals.cpp'; then $(CYGPATH_W) 'BEDIntervals.cpp'; else $(CYGPATH_W) '$(srcdir)/BEDIntervals.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-BEDIntervals.Tpo $(DEPDIR)/ginseng-BEDIntervals.Po
+#	source='BEDIntervals.cpp' object='ginseng-BEDIntervals.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-BEDIntervals.obj `if test -f 'BEDIntervals.cpp'; then $(CYGPATH_W) 'BEDIntervals.cpp'; else $(CYGPATH_W) '$(srcdir)/BEDIntervals.cpp'; fi`
+
+ginseng-Events.o: Events.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Events.o -MD -MP -MF $(DEPDIR)/ginseng-Events.Tpo -c -o ginseng-Events.o `test -f 'Events.cpp' || echo '$(srcdir)/'`Events.cpp
+	$(am__mv) $(DEPDIR)/ginseng-Events.Tpo $(DEPDIR)/ginseng-Events.Po
+#	source='Events.cpp' object='ginseng-Events.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Events.o `test -f 'Events.cpp' || echo '$(srcdir)/'`Events.cpp
+
+ginseng-Events.obj: Events.cpp
+	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT ginseng-Events.obj -MD -MP -MF $(DEPDIR)/ginseng-Events.Tpo -c -o ginseng-Events.obj `if test -f 'Events.cpp'; then $(CYGPATH_W) 'Events.cpp'; else $(CYGPATH_W) '$(srcdir)/Events.cpp'; fi`
+	$(am__mv) $(DEPDIR)/ginseng-Events.Tpo $(DEPDIR)/ginseng-Events.Po
+#	source='Events.cpp' object='ginseng-Events.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(ginseng_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o ginseng-Events.obj `if test -f 'Events.cpp'; then $(CYGPATH_W) 'Events.cpp'; else $(CYGPATH_W) '$(srcdir)/Events.cpp'; fi`
 
 .cpp.o:
 	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

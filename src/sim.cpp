@@ -23,7 +23,7 @@ const char* SIM_USAGE_MESSAGE =
 "  -N, --num-sims            Number of points / pairs to attempt simulation. [1e6]\n"
 "  -m, --mode                Simulation mode. (1) one-dimensional (A) additive (M) multiplicative. [1]\n"
 "  -r, --ratio               Ratio of intrachromosomal events to translocations. [4]\n"
-"  -R, --random              Generate random BED file of 1D probabs, with variance -R. 10000 bp bins. Writes to random_bias.bed\n"
+"  -R, --random              Generate random BED file of 1D breakpoint probablities, with variance -R. 10000 bp bins. Writes to random_bias.bed\n"
   "\n";
 
 static const int MIN = 1000;
@@ -82,8 +82,10 @@ int runSim(int argc, char** argv) {
     hsv.push_back(SeqLib::HeaderSequence(CHR_NAME[i], csize[i]));
 
   // only sim from 1-X
-  for (size_t i = 0; i < 23; ++i)
+  GENOMESIZE = 0;
+  for (size_t i = 0; i < 23; ++i) {
     GENOMESIZE += hsv[i].Length;
+  }
 
   // set up the random number generator
   std::default_random_engine generator;
@@ -102,7 +104,7 @@ int runSim(int argc, char** argv) {
   
   if (opt::variance == -1) {
     std::cerr << "...reading in " << opt::bias << std::endl;
-    fr.readFromBed(opt::bias, h);
+    fr.readFromBed(opt::bias, h, true);
     std::cerr << "...read in " << SeqLib::AddCommas(fr.size()) << " regions " << std::endl;
   } else {
     std::cerr << "...generating randomed bias" << std::endl;
@@ -135,7 +137,7 @@ int runSim(int argc, char** argv) {
 
   // simulate points
   SeqLib::GRC grc;
-  size_t initial_draw = 10000000;
+  size_t initial_draw = std::min((size_t)10000000, (size_t)(opt::N * 20));
   std::cerr << "...initially simulating " << SeqLib::AddCommas(initial_draw) << " breaks" << std::endl;
   for (size_t i = 0; i < initial_draw; ++i) 
     grc.add(regionFromNum(distribution(generator)));
@@ -201,7 +203,7 @@ void output1D(SeqLib::GRC& b) {
   for (auto& i : b) {
     if (++c > opt::N)
       break;
-    std::cout << hsv[i.chr].Name << "\t" << i.pos1 << "\t" << i.pos2 
+    std::cout << hsv[i.chr].Name << "\t" << i.pos1 << "\t" << i.pos2 << "\t" 
 	      << hsv[i.chr].Name << "\t" << i.pos1 << "\t" << i.pos2 << std::endl;
   }
   

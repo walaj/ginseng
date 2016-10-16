@@ -5,6 +5,10 @@
 #include "SeqLib/BamHeader.h"
 #include <string>
 
+// define a random junk number that is dummy for NULL (eg interval vs score track)
+#define DUMMY_FLOAT -72374.2388323
+
+
   /** @brief Extension of GenomicRegion with a fraction of reads to keep on an interval
    * 
    * Used in conjunction with Fractions and used for selectively sub-sampling BAM files.
@@ -14,6 +18,8 @@ class FracRegion : public SeqLib::GenomicRegion {
  public:
   
   FracRegion() {}
+  
+  FracRegion(const SeqLib::GenomicRegion& gr, double f) : SeqLib::GenomicRegion(gr), frac(f) {}
 
   FracRegion(const std::string& c, const std::string& p1, const std::string& p2, const SeqLib::BamHeader& h, const std::string& f);
 
@@ -34,7 +40,7 @@ class Fractions : public SeqLib::GenomicRegionCollection<FracRegion> {
   // construct tiled across genome
   Fractions(int w, int o, const SeqLib::HeaderSequenceVector& v) : SeqLib::GenomicRegionCollection<FracRegion>(w, o, v) {}
 
-  void readFromBed(const std::string& file, const SeqLib::BamHeader& h);
+  void readFromBed(const std::string& file, const SeqLib::BamHeader& h, bool scored);
 
  private:
 

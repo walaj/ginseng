@@ -4,7 +4,7 @@
 #include <string>
 #include "Fractions.h"
 
-void read_track(const std::string& track, SeqHashMap<std::string, Fractions>& frac);
+void read_track(const std::string& track, SeqHashMap<std::string, Fractions>& frac, const SeqLib::GRC& cov, bool scored);
 void parseFishOptions(int argc, char** argv);
 int runFishhook(int argc, char** argv);
 
