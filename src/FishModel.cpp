@@ -31,35 +31,36 @@ static gsl_vector *jack_iteration(gsl_matrix *m, math_fn do_math){
 static apop_data *ols_data;
 static gsl_vector * predicted;
 static double p_dot_mse;
-static apop_model * testmodel; //debug
 
 static double sum_squared_diff(gsl_vector *left, const gsl_vector *right){
   gsl_vector_sub(left, right); //destroys the left vector
   return apop_vector_map_sum(left, gsl_pow_2);
 }
 
-static gsl_vector *project(const apop_data *d, const apop_model *m){
-  return apop_dot(d, m->parameters, 0, 'v')->vector;
+static apop_data *project(const apop_data *d, const apop_model *m){
+  return apop_dot(d, m->parameters, 0, 'v');
 }
 
 static double cook_math(apop_data *reduced){
-  //std::this_thread::sleep_for(std::chrono::milliseconds(10));
-  //apop_model *r = apop_estimate(reduced, apop_ols); //debug
-  gsl_vector* new_predicted = project(ols_data, testmodel); // debug r
-  double out = sum_squared_diff(new_predicted, predicted)/p_dot_mse;
-  free(new_predicted);
-  //apop_model_free(r);
+  apop_model *r = apop_estimate(reduced, apop_ols);
+  apop_data * new_predicted = project(ols_data, r); 
+  double out = sum_squared_diff(new_predicted->vector, predicted)/p_dot_mse;
+  apop_data_free(new_predicted);
+  apop_model_free(r);
   return out;
 }
 
 static gsl_vector *cooks_distance(apop_model *in){
-  testmodel = in; // debug
   apop_data  *c = apop_data_copy(in->data);
   apop_ols->prep(in->data, in);
   ols_data = in->data;
-  predicted = project(in->data, in);
-  p_dot_mse  = c->matrix->size2 * sum_squared_diff(in->data->vector, predicted);
-  return jack_iteration(c->matrix, cook_math);
+  apop_data * t = project(in->data, in);
+  predicted = t->vector;
+  p_dot_mse  = c->matrix->size2 * sum_squared_diff(in->data->vector, t->vector);
+  
+  gsl_vector* out = jack_iteration(c->matrix, cook_math);
+  apop_data_free(t);
+  return out;
 }
 
 void FishModel::SetNumThreads(size_t n) { 
