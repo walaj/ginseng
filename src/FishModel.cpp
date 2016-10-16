@@ -30,6 +30,7 @@ static gsl_vector * predicted;
 static double p_dot_mse;
 
 static double sum_squared_diff(gsl_vector *left, gsl_vector *right){
+  return 1.0;
   gsl_vector_sub(left, right); //destroys the left vector
   return apop_vector_map_sum(left, gsl_pow_2);
 }
