@@ -2,14 +2,14 @@ language: cpp
 
 matrix:
   include:
-    - env: GCC_VERSION=5 CPP=11 LIBCXX=Off
-      os: linux
-      addons: &gcc5
+    - compiler: gcc
+      addons:
         apt:
-          packages:
-            - g++-5
           sources:
             - ubuntu-toolchain-r-test
+          packages:
+            - g++-4.9
+      env: COMPILER=g++-4.9
 
 before_install: 
 - git submodule update --init --recursive
@@ -19,7 +19,7 @@ before_install:
 - sudo apt-get install libgsl0-dev libsqlite3-dev
 
 script: 
-- ./configure && make apophenia && make && make install
+- make apophenia CXX=$COMPILER && ./configure && make CXX=$COMPILER && make install
 
 branches: 
   only: 

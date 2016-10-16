@@ -2,6 +2,9 @@
 #include <omp.h>
 #include <sstream>
 
+#include <chrono>
+#include <thread>
+
 typedef double (*math_fn)(apop_data *);
 
 // produce matrix with one row missing, for each possible row
@@ -28,25 +31,29 @@ static gsl_vector *jack_iteration(gsl_matrix *m, math_fn do_math){
 static apop_data *ols_data;
 static gsl_vector * predicted;
 static double p_dot_mse;
+static apop_model * testmodel; //debug
 
-static double sum_squared_diff(gsl_vector *left, gsl_vector *right){
-  return 1.0;
+static double sum_squared_diff(gsl_vector *left, const gsl_vector *right){
   gsl_vector_sub(left, right); //destroys the left vector
   return apop_vector_map_sum(left, gsl_pow_2);
 }
 
-static gsl_vector *project(apop_data *d, apop_model *m){
+static gsl_vector *project(const apop_data *d, const apop_model *m){
   return apop_dot(d, m->parameters, 0, 'v')->vector;
 }
 
 static double cook_math(apop_data *reduced){
-  apop_model *r = apop_estimate(reduced, apop_ols);
-  double out = sum_squared_diff(project(ols_data, r), predicted)/p_dot_mse;
-  apop_model_free(r);
+  //std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  //apop_model *r = apop_estimate(reduced, apop_ols); //debug
+  gsl_vector* new_predicted = project(ols_data, testmodel); // debug r
+  double out = sum_squared_diff(new_predicted, predicted)/p_dot_mse;
+  free(new_predicted);
+  //apop_model_free(r);
   return out;
 }
 
 static gsl_vector *cooks_distance(apop_model *in){
+  testmodel = in; // debug
   apop_data  *c = apop_data_copy(in->data);
   apop_ols->prep(in->data, in);
   ols_data = in->data;

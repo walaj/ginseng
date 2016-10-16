@@ -1,9 +1,9 @@
 #!/bin/bash
 
 ARRAY=(/xchip/gistic/Jeremiah/tracks/repeat_masker_hg19_SINE.filtered.bed \
-/xchip/gistic/Jeremiah/tracks/UCSC_predicted_genes.trim.bed \
-/xchip/gistic/Jeremiah/Projects/ICGC/RefAndAnnot/Roadmap_regulatory_elements/2f9970ee-f311-4e4d-aa50-4b1ac986c031/roadmap_DNase_all.nochr.bed \
-/xchip/gistic/Jeremiah/tracks/repeat_masker_hg19_LINE.filtered.bed \
+#/xchip/gistic/Jeremiah/tracks/UCSC_predicted_genes.trim.bed \
+#/xchip/gistic/Jeremiah/Projects/ICGC/RefAndAnnot/Roadmap_regulatory_elements/2f9970ee-f311-4e4d-aa50-4b1ac986c031/roadmap_DNase_all.nochr.bed \
+#/xchip/gistic/Jeremiah/tracks/repeat_masker_hg19_LINE.filtered.bed \
 /xchip/gistic/Jeremiah/tracks/repeat_masker_hg19_LTR.filtered.bed)
 
 INPUTS=""
