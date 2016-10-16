@@ -21,7 +21,7 @@ before_install:
 script: 
 - make apophenia CXX=$COMPILER && ./configure && make CXX=$COMPILER && make install
 
-after_failure: "cat /home/travis/builds/walaj/ginseng/apophenia-pkg/Makefile"
+after_failure: "cat /home/travis/builds/walaj/ginseng/apophenia-pkg/Makefile && /home/travis/builds/walaj/ginseng/apophenia-pkg/config.h"
 
 branches: 
   only: 
