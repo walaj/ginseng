@@ -16,10 +16,12 @@ before_install:
 - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 - sudo apt-get update
 - sudo apt-get install python-yaml libyaml-dev build-essential libssh2-1-dev libarchive-dev
-- sudo apt-get install libgsl0-dev libsqlite3-dev libmysqclient-dev
+- sudo apt-get install libgsl0-dev libsqlite3-dev
 
 script: 
 - make apophenia CXX=$COMPILER && ./configure && make CXX=$COMPILER && make install
+
+after_failure: "cat /home/travis/builds/walaj/ginseng/apophenia-pkg/Makefile"
 
 branches: 
   only: 
