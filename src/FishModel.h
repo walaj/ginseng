@@ -2,19 +2,23 @@
 #define GINSENG_FISH_MODEL_H
 
 #include "apop.h"
+#include "apop_negativebinomial.c"
 #include "FishHookInterval.h"
 
 class FishModel {
 
  public:
 
- FishModel() : mat(NULL), ols(NULL) {}
+ FishModel() : mat(NULL), ols(NULL), poisson(NULL) {}
 
   // fill the data
   void AddTiles(const FishHookTiles& f);
 
-  // fill the ols model
+  /** Estimate the parameters for an ordinary linear regression */
   void EstimateOLS();
+
+  /** Estimate the parameters for a poisson regression model */
+  void EstimatePoisson(); 
 
   // return the Cook's distance for each tile
   gsl_vector* CooksDistance(apop_model* model);
@@ -36,7 +40,9 @@ class FishModel {
 
   apop_data *mat; 
 
-  apop_model * ols;
+  apop_model * ols, poisson, negative_binomial;
+
+    
   
 };
 

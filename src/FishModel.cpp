@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <sstream>
 
+//#include "apop_negativebinomial.c"
 #include <chrono>
 #include <thread>
 
@@ -111,6 +112,18 @@ void FishModel::AddTiles(const FishHookTiles& f) {
     apop_name_add(mat->names, ss.str().c_str(), 'r');
     ss.str(std::string());
   }
+
+}
+
+void FishModel::EstimatePoisson() {
+
+  if (!mat) {
+    std::cerr << "Need to fill the data with AddTiles first" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+  
+  // run the model
+  poisson = apop_estimate(mat, apop_poisson);
 
 }
 

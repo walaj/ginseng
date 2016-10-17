@@ -28,7 +28,7 @@ Installation
 ##    export GSL_CONFIG=$GSL_HOME/bin/gsl-config
 ##    export LD_LIBRARY_PATH=$GSL_HOME/lib:$LD_LIBRARY_PATH
 
-git clone --recursive https://github.com/jwalabroad/ginseng
+git clone --recursive https://github.com/walaj/ginseng
 cd ginseng
 make apophenia ## install the apophenia libs
 ./configure
@@ -38,7 +38,7 @@ make install
 
 Description
 -----------
-*ginseng*<sup>1</sup> is set of tools for determing genome-wide signficance for 2-dimensional 
+*ginseng* is set of tools for determing genome-wide signficance for 2-dimensional 
 genomic data. The primary use case is for structural variations (aka rearrangements) in cancer, but
 the methods in principle could be applied to other data sets (eg HiC interactions).
 
@@ -89,6 +89,4 @@ Development, support, guidance, testing:
 * Marcin Imielinski - Assistant Professor, Cornell University
 * Rameen Beroukhim - Assistant Professor, Harvard Medical School
 
-[license]: https://github.com/jwalabroad/ginseng/blob/master/LICENSE
-
-<sup>1</sup> Google's suggestion for the query ``gensig``
+[license]: https://github.com/walaj/ginseng/blob/master/LICENSE
