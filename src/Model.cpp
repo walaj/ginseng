@@ -54,6 +54,7 @@ void test_apo() {
   
   // apop_data_set(apop, row, col, val, *, *, *)
 
+  /*
   apop_data *scalar = apop_data_alloc(1, 0, 0);
   apop_data_set(scalar, 0,0,3,NULL,NULL,NULL);
   double three = apop_data_get(scalar,0,0,NULL,NULL,NULL);
@@ -68,12 +69,13 @@ void test_apo() {
   double two2 = apop_data_get(v, 1, -1, NULL, NULL, NULL); // row, col
   double two3 = apop_data_get(v, 2, -1, NULL, NULL, NULL); // row, col
   std::cerr << " TWO " << two << " " << two2 << " " << two3 << std::endl;
-
+  */
+  
   // make a big ol matrix
   apop_data *mat = apop_data_alloc(10, 10, 2);
   for (size_t i = 0; i < 10; ++i) { // loop each variable
     for (int j = 0; j < 2; ++j) { // loop each observation
-      double r = i + 10;
+      double r = i*3;
       if (j == 1)
 	r = 1;
       apop_data_set(mat, i, j, r, NULL, NULL, NULL);
@@ -82,14 +84,15 @@ void test_apo() {
 
   // allocate the outcome
   for (size_t i = 0; i < 10; ++i) {
-    apop_data_set(mat, i, -1, (double)i+10, NULL, NULL, NULL);
+    double dd = i*3+((double)(rand() % 300) / 100);
+    apop_data_set(mat, i, -1, dd, NULL, NULL, NULL);
   }
   apop_data_show(mat);
 
   // model
-  apop_model *est = apop_estimate(mat, apop_ols);
+  apop_model *est = apop_estimate(mat, apop_poisson);
 
-  apop_model_show(apop_estimate(mat, apop_ols));
+  apop_model_show(est);
 
     //std::cerr << " POT " << std::endl;
     //strcpy(apop_opts.output_delimiter, "\n");

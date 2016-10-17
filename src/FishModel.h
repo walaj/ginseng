@@ -2,7 +2,6 @@
 #define GINSENG_FISH_MODEL_H
 
 #include "apop.h"
-#include "apop_negativebinomial.c"
 #include "FishHookInterval.h"
 
 class FishModel {
@@ -40,7 +39,7 @@ class FishModel {
 
   apop_data *mat; 
 
-  apop_model * ols, poisson, negative_binomial;
+  apop_model * ols, * poisson, * negative_binomial;
 
     
   
