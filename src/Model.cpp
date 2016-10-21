@@ -72,7 +72,7 @@ void test_apo() {
   */
   
   // make a big ol matrix
-  apop_data *mat = apop_data_alloc(10, 10, 2);
+  /*apop_data *mat = apop_data_alloc(10, 10, 2);
   for (size_t i = 0; i < 10; ++i) { // loop each variable
     for (int j = 0; j < 2; ++j) { // loop each observation
       double r = i*3;
@@ -80,19 +80,40 @@ void test_apo() {
 	r = 1;
       apop_data_set(mat, i, j, r, NULL, NULL, NULL);
     }
-  }
+    }*/
 
   // allocate the outcome
-  for (size_t i = 0; i < 10; ++i) {
-    double dd = i*3+((double)(rand() % 300) / 100);
-    apop_data_set(mat, i, -1, dd, NULL, NULL, NULL);
+  apop_data *mat = apop_data_alloc(33, 0, 0);
+  // mu = 100, var = 1000, p = .1  r = 111.1111
+  double nb[33] = {93,109,96,85,102,100,111,105,92,89,112,118,96,103,102,108,103,94,85,107,103,125,102,91,98,106,108,97,101,89,97,115,107};
+  for (size_t i = 0; i < 33; ++i) 
+    apop_data_set(mat, i, -1, nb[i], NULL, NULL, NULL);
+  //apop_data_show(mat);
+
+  //apop_model *est = apop_estimate(mat, apop_negativebinomial);
+  //apop_model_show(est);
+
+  const size_t nd = 100;
+  gsl_rng * rrr = gsl_rng_alloc (gsl_rng_taus);
+  apop_data *mat2 = apop_data_alloc(nd, 0, 0);
+  // mu = 100, var = 1000, p = .1  r = 111.1111
+  double nb2[nd];
+  double mu = 500;
+  double var = 10000;
+  double p = mu / var;
+  double r = mu*mu / (var - mu);
+  std::cout << " mu " << mu << " var " << var << " P " << p << " r " << r << " drawing " << nd << " points " << std::endl;
+  for (size_t i = 0; i < nd; ++i) {
+    nb2[i] = gsl_ran_negative_binomial(rrr, p, r);
+    apop_data_set(mat2, i, -1, nb2[i], NULL, NULL, NULL);
   }
-  apop_data_show(mat);
 
-  // model
-  apop_model *est = apop_estimate(mat, apop_poisson);
+  //apop_data_show(mat2);
 
-  apop_model_show(est);
+  std::cerr << "...estimating model" << std::endl;
+  apop_model *est2 = apop_estimate(mat2, apop_negativebinomial);
+  apop_model_show(est2);
+  
 
     //std::cerr << " POT " << std::endl;
     //strcpy(apop_opts.output_delimiter, "\n");
