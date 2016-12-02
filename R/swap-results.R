@@ -33,7 +33,8 @@ make_plots = function(RFILE, suffix) {
     setkey(dum0, EXP)
     
     ## get the odds ratios
-    dt2 <- unique(dum0)[setkey(setnames(rt[, mean(Overlap), by=EXP], "V1", "Rand"),EXP)]
+    ##Rand is mean of overlaps
+    dt2 <- unique(dum0)[setkey(setnames(rt[ID != 0, mean(Overlap), by=EXP], "V1", "Rand"),EXP)]
     dt2[, odds := ifelse(Rand > 0, x / Rand, 0), by=EXP]
     setkey(dt2, odds)
     
@@ -62,7 +63,7 @@ make_plots = function(RFILE, suffix) {
     dt2$sig = "no"
     dt2$sig[dt2$hi_odds < 1] = 'depleted'
     dt2$sig[dt2$low_odds > 1] = 'enriched'
-    dt2$sig = factor(dt2$sig, levels=c("no","depleted","enriched"))
+    ##dt2$sig = factor(dt2$sig, levels=c("no","depleted","enriched"))
 
     ## make the odds ratio plot
     setkey(dt2, odds)
@@ -71,7 +72,7 @@ make_plots = function(RFILE, suffix) {
     
     g.odds <- ggplot(data=dt2, aes(x=EXP, y=odds, color=sig)) + geom_point() + geom_errorbar(aes(ymin=low_odds, ymax=hi_odds)) +
       theme(axis.text.x = element_text(angle=90), legend.position='none') + xlab("") + ylab("Odds over NULL") + coord_flip() +
-        scale_color_manual(values=c("black", "darkred", "darkgreen"))
+        scale_color_manual(values=c("no"="black", "depleted"="darkred", "enriched"="darkgreen"))
     
     g.res <- ggplot() + geom_histogram(data=rt[ID > 0], aes(x=Overlap), binwidth=10) +
       theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0, aes(x=x, y=y), color="red") +

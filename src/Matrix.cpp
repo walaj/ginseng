@@ -110,12 +110,14 @@ void Matrix::getSpans(std::vector<S>* pspanv) {
 
 void Matrix::allSwaps() { 
   
-  if (!(m_intra+m_inter))
+  if (!(m_intra+m_inter)) {
+    std::cerr << "NO EVENTS TO SWAP" << std::endl;
     return;
+  }
 
 #ifdef WIDTH
   // open the animation file if need to
-  if (m_anim_step > 0 && id == 0) {
+  if (m_anim_step > 0 && id == 1) {
     std::string anim_file = "animation.csv";
     std::string anim_hist_file = "animation.histogram.csv";
     std::string anim_hist_small_file = "animation.histogram.small.csv";
@@ -152,7 +154,7 @@ void Matrix::allSwaps() {
   std::cerr << printMCMC() << std::endl;
   
 #ifdef WIDTH
-  if (m_anim_step > 0 && id == 0) {
+  if (m_anim_step > 0 && id == 1) {
     of_anim.close();
     of_anim_hist.close();
     of_anim_hist_small.close();
@@ -165,7 +167,7 @@ void Matrix::allSwaps() {
 void Matrix::doTransSwap() {
   
 #ifdef WIDTH
-  if (m_anim_step > 0 && id == 0)
+  if (m_anim_step > 0 && id == 1)
     Animate();
 #endif
 
@@ -191,7 +193,7 @@ void Matrix::doTransSwap() {
 void Matrix::doIntraSwap(size_t chr) {
 
 #ifdef WIDTH
-  if (m_anim_step > 0 && id == 0)
+  if (m_anim_step > 0 && id == 1)
     Animate();
 #endif
 
@@ -240,7 +242,7 @@ void Matrix::doIntraSwap(size_t chr) {
     --hist_swap.m_bins[bin_table[d2]];
     
 #ifdef WIDTH
-    if (id == 0 && m_anim_step > 0) {
+    if (id == 1 && m_anim_step > 0) {
       m_hist_smallbins.addElem(d3);
       m_hist_smallbins.addElem(d4);
       m_hist_smallbins.removeElem(d1);
@@ -435,7 +437,8 @@ MatrixValue::MatrixValue(const std::string &chr1, const std::string &pos1, const
   c = std::shared_ptr<MatrixPoint>(new MatrixPoint(chr2, pos2, pos2, SeqLib::BamHeader()));
 }
 
-Matrix::Matrix() {
+Matrix::Matrix() : rand_chr(nullptr), rand_rows(nullptr), rand_cols(nullptr) {
+  
   __initialize_mvec();
 }
 
@@ -713,7 +716,7 @@ void Matrix::AddBedElements(const std::string& b, BEDIntervals& bi) {
   }
       
   std::cerr << "\tTrack " << b << " In: " << SeqLib::AddCommas(in)
-	    << " Out: " << out << " Total track zwidth: " 
+	    << " Out: " << out << " Total track width: " 
 	    << SeqLib::AddCommas(bi.grc.TotalWidth()) << std::endl;
 }
 

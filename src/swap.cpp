@@ -214,6 +214,7 @@ int runSwap(int argc, char** argv) {
   PrecalculateHistogramBins(m);
   
   // write the matrix out and original histogram
+  std::cerr << "...writing matrices" << std::endl;
   std::ofstream initial;
   initial.open(opt::analysis_id + ".original.csv");
   std::ofstream initial_h;
@@ -235,7 +236,7 @@ int runSwap(int argc, char** argv) {
 
   // set the animation step
   if (opt::anim_step > 0)
-      m->setAnimationStep(opt::anim_step);
+    m->setAnimationStep(opt::anim_step);
 
   // setup the work queue (one matrix per job)
   WorkQueue<SwapWorkItem*>  queue;
@@ -247,6 +248,7 @@ int runSwap(int argc, char** argv) {
   // Create the queue and consumer (worker) threads
   std::vector<ConsumerThread<SwapWorkItem, SwapThreadItem>* > threadqueue;
   
+  std::cerr << "...starting the swaps" << std::endl;
   // start the threads and add the jobs
   for (size_t i = 0; i < opt::numThreads; ++i) {
     SwapThreadItem * tu = new SwapThreadItem(i);
