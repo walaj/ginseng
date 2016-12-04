@@ -20,8 +20,8 @@
 #define LENGTH_CHECK 1
 
 // animation params for gif
-#define WIDTH 200
-#define COLSTEP 15 // make smaller to increase dynamic range
+#define WIDTH 600
+#define COLSTEP 25 // make smaller to increase dynamic range
 #define DELAY 20 // in 100th of seconds
 
 // which rng to use
@@ -744,7 +744,7 @@ std::string Matrix::OutputOverlapsIntraExclusive() const {
 
 }
 
-std::string Matrix::OutputOverlapsInterExclusive() const {
+std::string Matrix::OutputOverlapsInter(bool exclusive) const {
 
   if (!size()) // empty matrix
     return std::string();
@@ -758,7 +758,7 @@ std::string Matrix::OutputOverlapsInterExclusive() const {
 	size_t in = 0, out = 0;
 	for (const auto& chr : m_vec) {
 	  for (const auto& d : chr) {
-	    if (d.r->olap_element[a] >= 0 && d.c->olap_element[a] >= 0)
+	    if (d.r->olap_element[a] >= 0 && d.c->olap_element[a] >= 0 && (!exclusive || (d.r->olap_element[a] != d.c->olap_element[a])))
 	      ++in; // overlap is good
 	    else
 	      ++out;
@@ -777,7 +777,6 @@ std::string Matrix::OutputOverlapsInterExclusive() const {
 	for (const auto& chr : m_vec) {
 	  for (const auto& d : chr) {
 	    // check if (point R in bedA && C in bedB) || (C in bedA && R in bedB)
-	    // aelso since this is exclusive, check that they are not in the SAME elem
 	    bool AB = d.r->olap_element[a] >= 0 && d.c->olap_element[b] >= 0;
 	    bool BA = d.r->olap_element[b] >= 0 && d.c->olap_element[a] >= 0;
 	    if (AB || BA)

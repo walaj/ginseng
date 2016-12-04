@@ -231,7 +231,7 @@ int runSwap(int argc, char** argv) {
   std::ofstream intra_results(opt::analysis_id + ".results.intrabin.csv");  // results for points contained in bed interval
 
   // get the overlaps for the original matrix
-  inter_results << m->OutputOverlapsInterExclusive();
+  inter_results << m->OutputOverlapsInter(true); // true for exclusive (e.g. don't count SINE-SINE when SINE is exact same one)
   intra_results << m->OutputOverlapsIntraExclusive();
 
   // set the animation step

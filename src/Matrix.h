@@ -339,7 +339,9 @@ class Matrix {
 
   // at the end of swapping, output a formatted
   // string with the output results (for inter-interval exclusive)
-  std::string OutputOverlapsInterExclusive() const;
+  // if exclusive, then don't count events that are within the exact same
+  // element (e.g. the exact same SINE element)
+  std::string OutputOverlapsInter(bool exclusive) const;
 
   // at the end of swapping, output a formatted
   // string with the output results (for rars with both ends in 

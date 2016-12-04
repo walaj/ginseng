@@ -96,7 +96,8 @@ public:
 #endif
     m_this_mat->allSwaps();               // do the actual swaps
 
-    thread_data->inter_results << m_this_mat->OutputOverlapsInterExclusive();
+    bool exclusive = true;
+    thread_data->inter_results << m_this_mat->OutputOverlapsInter(exclusive);
     thread_data->intra_results << m_this_mat->OutputOverlapsIntraExclusive();
     
     /*
