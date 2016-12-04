@@ -2,7 +2,8 @@
 
 ### height of the "real" bar in the histograms. Higher number for higher num matrices
 YHEIGHT = 25
-
+## width of the histogram bins. For higher num matrices, reduce to increase resolution of histogram
+BINWIDTH=10
 library(optparse)
 
 option_list = list(
@@ -43,23 +44,35 @@ make_plots = function(RFILE, suffix) {
     
     ## fit normal distribution
     ## dd is for plotting normal dist, dt2 is for odds ratio
-    BINWIDTH=10
     NUM_MATS = (length(unique(rt$ID))-1)*BINWIDTH
     dd=rt[ID > 0, as.list(MASS::fitdistr(Overlap, "normal")$estimate), by=EXP]
+    dd.error=rt[ID > 0, as.list(MASS::fitdistr(Overlap, "normal")$sd), by=EXP] ## standard errors on estimates
+    setnames(dd.error, c("mean", "sd"), c("mean.error","sd.error"))
+    
     setkey(dd, EXP)
-    setkey(dt2)
+    setkey(dd.error, EXP)    
+    setkey(dt2, EXP)
     dt2 = dt2[dd]
+    setkey(dt2, EXP)
+    dt2 = dt2[dd.error]
+    dd <- dd[dd.error]
+    setkey(dd, EXP)
+
+    ## dd is for the blue normal fit line . the 3* sd is just for graphing purposes (how much to show)
     dd2=dd[, list(x=seq(mean - 3*sd, mean+3*sd, by=BINWIDTH), y=dnorm(x=seq(mean - 3*sd, mean+3*sd, by=BINWIDTH), mean=mean, sd=sd)*NUM_MATS), by=EXP]
+    ##dd2=dd[, list(x=seq( (mean - 3 * mean.error) - 3 * (sd + 3 * sd.error), (mean + 3 * mean.error) + 3 * (sd - 3 * sd.error), by=BINWIDTH), y=dnorm(x=seq( (mean - 3 * mean.error) - 3 * (sd + 3 * sd.error), (mean + 3 * mean.error) + 3 * (sd + 3 * sd.error), by=BINWIDTH), mean=mean, sd=sd)*NUM_MATS), by=EXP]
     setkey(dd2, EXP)
     dd = dd[dd2]
-    
+
     ## get the pvalues of the real overlaps using the fitted normal
     rt2 <- unique(rt[ID > 0])
     setkey(rt2, EXP)
     setkey(dt2, EXP)
-    dt2[, pval := pnorm(x, mean, sd)]
-    dt2[, hi_odds := x / (mean - sd)]
-    dt2[, low_odds := x / (mean + sd)]
+    dt2[, pval := pnorm(x, mean , sd)]
+    dt2[, hi_odds := x / ( (mean - 1.96 * mean.error) - 1.96 * (sd + sd.error * 1.96) )]
+    dt2[, low_odds := x / ( (mean + 1.96 * mean.error) + 1.96 * (sd - sd.error * 1.96) )]
+    dt2[, hi_odds_nonconservative := x / ( (mean) - 1 * (sd) )]
+    dt2[, low_odds_nonconservative := x / ( (mean) + 1 * (sd) )]
     dt2$sig = "no"
     dt2$sig[dt2$hi_odds < 1] = 'depleted'
     dt2$sig[dt2$low_odds > 1] = 'enriched'
