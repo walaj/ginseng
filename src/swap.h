@@ -94,7 +94,8 @@ public:
     std::cerr << "...starting swaps on " << m_id << std::endl;
     pthread_mutex_unlock(m_lock);
 #endif
-    m_this_mat->allSwaps();               // do the actual swaps
+    if (!m_this_mat->allSwaps())               // do the actual swaps
+      return false;
 
     bool exclusive = true;
     thread_data->inter_results << m_this_mat->OutputOverlapsInter(exclusive);

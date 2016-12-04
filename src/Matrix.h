@@ -207,7 +207,7 @@ class Matrix {
    * @param allm Vector storing all Matrix objects across threads
    * @param num_steps Number of swaps to attempt
    */
-  void allSwaps(); //pthread_mutex_t * lock, std::vector<Matrix*> * allm);
+  bool allSwaps(); //pthread_mutex_t * lock, std::vector<Matrix*> * allm);
 
   /** Print brief information about this Matrix for debugging.
    */

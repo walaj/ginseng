@@ -147,9 +147,13 @@ int runSwap(int argc, char** argv) {
   m->SetMaxSize(opt::max_rar_size);
   m->SetNumSwapSteps(opt::num_steps);
   m->id = 0;
+
+  int ret = m->LoadBEDPE(opt::input);
+  if (!ret)
+    EXIT_ERROR("Unabled to load file: " + opt::input);
   
   // loop the list file and add the BEDPE/VCFs
-  igzstream inFile(opt::input.c_str());
+  /*igzstream inFile(opt::input.c_str());
   if (!inFile) 
     EXIT_ERROR("Can't load the file list: " + opt::input);
   size_t fc = 0;
@@ -172,6 +176,8 @@ int runSwap(int argc, char** argv) {
     if (fc % 500 == 0 && opt::verbose)
       std::cerr << "...loaded " << SeqLib::AddCommas(fc) << "th file: " << fileline << std::endl;
   }
+  */
+
   // scramble it
   m->ScrambleAroundDiagonal();
   // fill the initial histogram

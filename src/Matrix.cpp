@@ -108,11 +108,11 @@ void Matrix::getSpans(std::vector<S>* pspanv) {
 
 }
 
-void Matrix::allSwaps() { 
+bool Matrix::allSwaps() { 
   
   if (!(m_intra+m_inter)) {
     std::cerr << "NO EVENTS TO SWAP" << std::endl;
-    return;
+    return false;
   }
 
 #ifdef WIDTH
@@ -162,6 +162,7 @@ void Matrix::allSwaps() {
   }
 #endif
 
+  return true;
 }
 
 void Matrix::doTransSwap() {
@@ -350,15 +351,8 @@ bool Matrix::LoadBEDPE(const std::string& file) {
     std::string chr1, pos1, chr2, pos2;
     std::istringstream iss(event_line);// for holdoing each line of the BEDPE
     
-    size_t count = 0;
-    while (std::getline(iss, val, '\t')) {
-      switch(++count) {
-      case 1: chr1 = val; break;
-      case 2: pos1 = val; break;
-      case 4: chr2 = val; break;
-      case 5: pos2 = val; continue; //break;
-      } // end switch
-    } // end intra-line loop
+    std::string dum;
+    iss >> chr1 >> pos1 >> dum >> chr2 >> pos2;
     
     if (!AddNewMatrixValue(chr1, chr2, pos1, pos2)) {
       std::cerr << "Error converting line: " << event_line 
