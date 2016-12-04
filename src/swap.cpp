@@ -431,13 +431,16 @@ void import_bed_files(const std::string& bed_list, BEDMap& all_bed) {
 	bedid = val;
       else {
 	all_bed[bedid] = BEDIntervals();
-	all_bed[bedid].grc.ReadBED(val, SeqLib::BamHeader());
-	all_bed[bedid].grc.MergeOverlappingIntervals(); // don't allow overlaps. create interval tree
-	all_bed[bedid].grc.CreateTreeMap();
-	if (!all_bed[bedid].grc.size()) {
-	  std::cerr << "BED file: " << val << " is empty" << std::endl;
+	if (!all_bed[bedid].grc.ReadBED(val, SeqLib::BamHeader())) {
+	  std::cerr << "BED file: " << val << " could not be read" << std::endl;
 	  exit(EXIT_FAILURE);
 	}
+	if (!all_bed[bedid].grc.size()) {
+	  std::cerr << "BED file: " << val << " is empty before tree creation" << std::endl;
+	  exit(EXIT_FAILURE);
+	}
+	all_bed[bedid].grc.MergeOverlappingIntervals(); // don't allow overlaps. create interval tree
+	all_bed[bedid].grc.CreateTreeMap();
 	std::cerr << "\tread " << bedid << " with " << SeqLib::AddCommas(all_bed[bedid].size()) << " regions " << std::endl;
       }
     } // end intra-line loop

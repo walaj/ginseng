@@ -20,8 +20,8 @@
 #define LENGTH_CHECK 1
 
 // animation params for gif
-#define WIDTH 1000
-#define COLSTEP 40
+#define WIDTH 200
+#define COLSTEP 15 // make smaller to increase dynamic range
 #define DELAY 20 // in 100th of seconds
 
 // which rng to use
@@ -675,13 +675,11 @@ void Matrix::Animate() {
   if ( (m_mcmc.swap_tried % m_anim_step) == 0 || m_mcmc.swap_tried == 0) {
     uint8_t * image = AsRGB8Image(WIDTH, COLSTEP);
     GifWriteFrame(gw, image, WIDTH, WIDTH, DELAY);
-    std::cerr << "...animating step " << m_mcmc.swap_tried 
-      //<< " Small-bin Hist Distance " << m_hist_smallbins.EuclideanDistance(m_orig->m_hist_smallbins) 
-	      << " Large-bin Hist Distance " << hist_swap.EuclideanDistance(m_orig->hist_swap) << std::endl;
+    std::cout << "animating_step\t" << m_mcmc.swap_tried 
+	      << "\thist_distance\t" << hist_swap.EuclideanDistance(m_orig->hist_swap) << std::endl;
     hist_swap.toCSV(of_anim_hist); // write the histograms
     m_hist_smallbins.toCSV(of_anim_hist_small);
   }
-
 }
 
 void Matrix::AddBedElements(const std::string& b, BEDIntervals& bi) {

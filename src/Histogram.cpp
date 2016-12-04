@@ -224,9 +224,9 @@ double Histogram::EuclideanDistance(const Histogram& h) const {
   for (size_t i = 0; i < m_bins.size(); ++i) {
     double c = (double)(m_bins[i].getCount() - h.m_bins[i].getCount()) / 10000.0;
     dist += c*c;
-    std::cerr << " Swap " << m_bins[i].getCount() << " Orig " 
+    std::cout << "Swap\t" << m_bins[i].getCount() << "\tOrig\t" 
 	      << h.m_bins[i].getCount()
-	      << " " << m_bins[i].BoundsString() << std::endl;
+	      << "\t" << m_bins[i].BoundsString() << std::endl;
   }
 
   return (sqrt(dist));
