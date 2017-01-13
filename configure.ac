@@ -64,7 +64,7 @@ AC_SUBST(CFLAGS, "")
 AC_SUBST(CPPFLAGS, "$CPPFLAGS $boost_include $apophenia_include $gsl_include")
 AC_SUBST(LDFLAGS, "-fopenmp $LDFLAGS")
 
-AC_SUBST(LIBS, " $apophenia_lib $gsl_lib  -lgsl -lgslcblas $LIBS")
+AC_SUBST(LIBS, " $apophenia_lib $gsl_lib -lsqlite3 -lgsl -lgslcblas $LIBS")
 
 # Ensure the GSL is available
 AC_CHECK_HEADERS([gsl/gsl_rng.h],,[AC_MSG_ERROR([GSL library is required: See http://apophenia.info/setup.html])])

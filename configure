@@ -4971,7 +4971,7 @@ CPPFLAGS="$CPPFLAGS $boost_include $apophenia_include $gsl_include"
 LDFLAGS="-fopenmp $LDFLAGS"
 
 
-LIBS=" $apophenia_lib $gsl_lib  -lgsl -lgslcblas $LIBS"
+LIBS=" $apophenia_lib $gsl_lib -lsqlite3 -lgsl -lgslcblas $LIBS"
 
 
 # Ensure the GSL is available
