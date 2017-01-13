@@ -39,7 +39,7 @@ Installation
 
 git clone --recursive https://github.com/walaj/ginseng
 cd ginseng
-./configure --with-apophenia=$APOPHOME --with-gsl=$GSLHOME
+./configure --with-apophenia=$APOPHOME --with-gsl=$GSLHOME ## must give full (not relative) paths here
 make
 make install
 ```
