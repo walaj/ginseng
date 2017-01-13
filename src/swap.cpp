@@ -269,11 +269,13 @@ int runSwap(int argc, char** argv) {
     threadqueue[i]->join();
 
   // write the outputs from each thread 
+  std::cerr << "...writing the output" << std::endl;
   for (const auto& i : threadqueue) {
     inter_results << i->GetThreadData()->inter_results.str();
     intra_results << i->GetThreadData()->intra_results.str();
   }
-    
+
+  std::cerr << "...closing files" << std::endl;    
   // close the results text files
   inter_results.close();
   intra_results.close();

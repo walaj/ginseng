@@ -259,6 +259,8 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+apophenia_include = @apophenia_include@
+apophenia_lib = @apophenia_lib@
 bindir = @bindir@
 boost_lib = @boost_lib@
 build_alias = @build_alias@
@@ -268,6 +270,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+gsl_lib = @gsl_lib@
 host_alias = @host_alias@
 htmldir = @htmldir@
 includedir = @includedir@
@@ -284,7 +287,6 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -747,9 +749,6 @@ uninstall-am:
 
 .PRECIOUS: Makefile
 
-
-apophenia:
-	cd apophenia-pkg && ./configure --prefix=`pwd` && make && make install
 
 install:
 	mkdir -p bin && mv src/ginseng bin

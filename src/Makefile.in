@@ -107,10 +107,7 @@ am_ginseng_OBJECTS = ginseng-FishModel.$(OBJEXT) \
 	ginseng-BEDIntervals.$(OBJEXT) ginseng-Events.$(OBJEXT)
 ginseng_OBJECTS = $(am_ginseng_OBJECTS)
 ginseng_DEPENDENCIES = $(top_builddir)/SeqLib/src/libseqlib.a \
-	$(top_builddir)/SeqLib/htslib/libhts.a \
-	$(top_builddir)/apophenia-pkg/lib/libapophenia.a
-ginseng_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(ginseng_LDFLAGS) \
-	$(LDFLAGS) -o $@
+	$(top_builddir)/SeqLib/htslib/libhts.a
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -246,6 +243,8 @@ am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+apophenia_include = @apophenia_include@
+apophenia_lib = @apophenia_lib@
 bindir = @bindir@
 boost_lib = @boost_lib@
 build_alias = @build_alias@
@@ -255,6 +254,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+gsl_lib = @gsl_lib@
 host_alias = @host_alias@
 htmldir = @htmldir@
 includedir = @includedir@
@@ -271,7 +271,6 @@ pdfdir = @pdfdir@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
 psdir = @psdir@
-runstatedir = @runstatedir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 srcdir = @srcdir@
@@ -282,14 +281,11 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ginseng_CPPFLAGS = \
 	-I$(top_srcdir)/SeqLib \
+	-I$(top_srcdir) \
 	-I$(top_srcdir)/SeqLib/htslib \
-	-I$(top_srcdir)/apophenia-pkg/include \
-	-I/xchip/gistic/Jeremiah/software/gsl-2.2.1/include -Wno-sign-compare
+	-Wno-sign-compare
 
-ginseng_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/htslib/libhts.a \
-		$(top_builddir)/apophenia-pkg/lib/libapophenia.a -lgsl -lgslcblas -lsqlite3
-
-ginseng_LDFLAGS = -L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -fopenmp
+ginseng_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/htslib/libhts.a -lsqlite3
 ginseng_SOURCES = FishModel.cpp gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp \
 		prng_engine.hpp Fractions.cpp FishHookInterval.cpp sim.cpp fishhook.cpp \
 		Model.cpp BEDIntervals.cpp Events.cpp
@@ -372,7 +368,7 @@ clean-binPROGRAMS:
 
 ginseng$(EXEEXT): $(ginseng_OBJECTS) $(ginseng_DEPENDENCIES) $(EXTRA_ginseng_DEPENDENCIES) 
 	@rm -f ginseng$(EXEEXT)
-	$(AM_V_CXXLD)$(ginseng_LINK) $(ginseng_OBJECTS) $(ginseng_LDADD) $(LIBS)
+	$(AM_V_CXXLD)$(CXXLINK) $(ginseng_OBJECTS) $(ginseng_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

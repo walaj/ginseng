@@ -28,10 +28,18 @@ Installation
 ##    export GSL_CONFIG=$GSL_HOME/bin/gsl-config
 ##    export LD_LIBRARY_PATH=$GSL_HOME/lib:$LD_LIBRARY_PATH
 
+## note that the Apophenia library must be installed after the GSL install
+##
+##    git clone https://github.com/walaj/apophenia-clone
+##    cd apophenia-clone
+##    ./configure --prefix=`pwd`
+##    make CFLAGS=-I$GSLHOME LIBS="-lgsl -lgslcblas"
+##    make install
+##    export APOPHOME=`pwd`
+
 git clone --recursive https://github.com/walaj/ginseng
 cd ginseng
-make apophenia ## install the apophenia libs
-./configure
+./configure --with-apophenia=$APOPHOME --with-gsl=$GSLHOME
 make
 make install
 ```

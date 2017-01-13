@@ -70,10 +70,10 @@ am__make_running_with_option = \
   test $$has_opt = yes
 am__make_dryrun = (target_option=n; $(am__make_running_with_option))
 am__make_keepgoing = (target_option=k; $(am__make_running_with_option))
-pkgdatadir = $(datadir)/swap
-pkgincludedir = $(includedir)/swap
-pkglibdir = $(libdir)/swap
-pkglibexecdir = $(libexecdir)/swap
+pkgdatadir = $(datadir)/ginseng
+pkgincludedir = $(includedir)/ginseng
+pkglibdir = $(libdir)/ginseng
+pkglibexecdir = $(libexecdir)/ginseng
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 install_sh_DATA = $(install_sh) -c -m 644
 install_sh_PROGRAM = $(install_sh) -c
@@ -107,10 +107,7 @@ am_ginseng_OBJECTS = ginseng-FishModel.$(OBJEXT) \
 	ginseng-BEDIntervals.$(OBJEXT) ginseng-Events.$(OBJEXT)
 ginseng_OBJECTS = $(am_ginseng_OBJECTS)
 ginseng_DEPENDENCIES = $(top_builddir)/SeqLib/src/libseqlib.a \
-	$(top_builddir)/SeqLib/htslib/libhts.a \
-	$(top_builddir)/apophenia-pkg/lib/libapophenia.a
-ginseng_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(ginseng_LDFLAGS) \
-	$(LDFLAGS) -o $@
+	$(top_builddir)/SeqLib/htslib/libhts.a
 AM_V_P = $(am__v_P_$(V))
 am__v_P_ = $(am__v_P_$(AM_DEFAULT_VERBOSITY))
 am__v_P_0 = false
@@ -195,13 +192,13 @@ AWK = gawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
 CFLAGS = 
-CPPFLAGS =  
+CPPFLAGS =   -I/xchip/gistic/Jeremiah/GIT/apophenia-clone/include -I/xchip/gistic/Jeremiah/software/gsl-2.2.1/include
 CXX = g++
 CXXCPP = g++ -E
 CXXDEPMODE = depmode=gcc3
 CXXFLAGS = 
 CYGPATH_W = echo
-DEFS = -DPACKAGE_NAME=\"swap\" -DPACKAGE_TARNAME=\"swap\" -DPACKAGE_VERSION=\"0.0\" -DPACKAGE_STRING=\"swap\ 0.0\" -DPACKAGE_BUGREPORT=\"jwala@broadinstitute.org\" -DPACKAGE_URL=\"\" -DPACKAGE=\"swap\" -DVERSION=\"0.0\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_CLOCK_GETTIME=1 -DHAVE_PTHREAD=1
+DEFS = -DPACKAGE_NAME=\"ginseng\" -DPACKAGE_TARNAME=\"ginseng\" -DPACKAGE_VERSION=\"0.0\" -DPACKAGE_STRING=\"ginseng\ 0.0\" -DPACKAGE_BUGREPORT=\"jwala@broadinstitute.org\" -DPACKAGE_URL=\"\" -DPACKAGE=\"ginseng\" -DVERSION=\"0.0\" -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_CLOCK_GETTIME=1 -DHAVE_PTHREAD=1 -DHAVE_GSL_GSL_RNG_H=1 -DHAVE_APOP_H=1
 DEPDIR = .deps
 ECHO_C = 
 ECHO_N = -n
@@ -214,19 +211,19 @@ INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LDFLAGS = 
+LDFLAGS = -fopenmp 
 LIBOBJS = 
-LIBS = -lpthread -lrt -lz 
+LIBS =  /xchip/gistic/Jeremiah/GIT/apophenia-clone/lib/libapophenia.a -L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -lgsl -lgslcblas -lpthread -lrt -lz 
 LTLIBOBJS = 
 MAINT = #
 MAKEINFO = makeinfo
 MKDIR_P = /bin/mkdir -p
 OBJEXT = o
-PACKAGE = swap
+PACKAGE = ginseng
 PACKAGE_BUGREPORT = jwala@broadinstitute.org
-PACKAGE_NAME = swap
-PACKAGE_STRING = swap 0.0
-PACKAGE_TARNAME = swap
+PACKAGE_NAME = ginseng
+PACKAGE_STRING = ginseng 0.0
+PACKAGE_TARNAME = ginseng
 PACKAGE_URL = 
 PACKAGE_VERSION = 0.0
 PATH_SEPARATOR = :
@@ -235,10 +232,10 @@ SET_MAKE =
 SHELL = /bin/sh
 STRIP = 
 VERSION = 0.0
-abs_builddir = /xchip/gistic/Jeremiah/GIT/ginseng/src
-abs_srcdir = /xchip/gistic/Jeremiah/GIT/ginseng/src
-abs_top_builddir = /xchip/gistic/Jeremiah/GIT/ginseng
-abs_top_srcdir = /xchip/gistic/Jeremiah/GIT/ginseng
+abs_builddir = /xchip/gistic/Jeremiah/GIT/ginseng2/src
+abs_srcdir = /xchip/gistic/Jeremiah/GIT/ginseng2/src
+abs_top_builddir = /xchip/gistic/Jeremiah/GIT/ginseng2
+abs_top_srcdir = /xchip/gistic/Jeremiah/GIT/ginseng2
 ac_ct_CC = gcc
 ac_ct_CXX = g++
 am__include = include
@@ -246,6 +243,8 @@ am__leading_dot = .
 am__quote = 
 am__tar = $${TAR-tar} chof - "$$tardir"
 am__untar = $${TAR-tar} xf -
+apophenia_include = -I/xchip/gistic/Jeremiah/GIT/apophenia-clone/include
+apophenia_lib = /xchip/gistic/Jeremiah/GIT/apophenia-clone/lib/libapophenia.a
 bindir = ${exec_prefix}/bin
 boost_lib = 
 build_alias = 
@@ -255,11 +254,12 @@ datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE_TARNAME}
 dvidir = ${docdir}
 exec_prefix = ${prefix}
+gsl_lib = -L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -lgsl -lgslcblas
 host_alias = 
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng/install-sh
+install_sh = ${SHELL} /xchip/gistic/Jeremiah/GIT/ginseng2/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -271,7 +271,6 @@ pdfdir = ${docdir}
 prefix = /usr/local
 program_transform_name = s,x,x,
 psdir = ${docdir}
-runstatedir = ${localstatedir}/run
 sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 srcdir = .
@@ -282,14 +281,11 @@ top_builddir = ..
 top_srcdir = ..
 ginseng_CPPFLAGS = \
 	-I$(top_srcdir)/SeqLib \
+	-I$(top_srcdir) \
 	-I$(top_srcdir)/SeqLib/htslib \
-	-I$(top_srcdir)/apophenia-pkg/include \
-	-I/xchip/gistic/Jeremiah/software/gsl-2.2.1/include -Wno-sign-compare
+	-Wno-sign-compare
 
-ginseng_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/htslib/libhts.a \
-		$(top_builddir)/apophenia-pkg/lib/libapophenia.a -lgsl -lgslcblas -lsqlite3
-
-ginseng_LDFLAGS = -L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -fopenmp
+ginseng_LDADD = $(top_builddir)/SeqLib/src/libseqlib.a $(top_builddir)/SeqLib/htslib/libhts.a -lsqlite3
 ginseng_SOURCES = FishModel.cpp gzstream.C ginseng.cpp swap.cpp Histogram.cpp Matrix.cpp \
 		prng_engine.hpp Fractions.cpp FishHookInterval.cpp sim.cpp fishhook.cpp \
 		Model.cpp BEDIntervals.cpp Events.cpp
@@ -372,7 +368,7 @@ clean-binPROGRAMS:
 
 ginseng$(EXEEXT): $(ginseng_OBJECTS) $(ginseng_DEPENDENCIES) $(EXTRA_ginseng_DEPENDENCIES) 
 	@rm -f ginseng$(EXEEXT)
-	$(AM_V_CXXLD)$(ginseng_LINK) $(ginseng_OBJECTS) $(ginseng_LDADD) $(LIBS)
+	$(AM_V_CXXLD)$(CXXLINK) $(ginseng_OBJECTS) $(ginseng_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

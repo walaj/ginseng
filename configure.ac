@@ -1,7 +1,7 @@
-AC_PREREQ(2.59) ## specificy version of autoconf
-AC_INIT(swap, 0.0, jwala@broadinstitute.org)
+AC_PREREQ(2.69) ## specificy version of autoconf
+AC_INIT(ginseng, 0.0, jwala@broadinstitute.org)
 AM_INIT_AUTOMAKE(foreign)
-AC_CONFIG_SRCDIR([src/swap.cpp]) ## just checks that this file existss
+AC_CONFIG_SRCDIR([src/ginseng.cpp]) ## just checks that this file existss
 AM_MAINTAINER_MODE([disable])
 
 # Checks for programs.
@@ -33,6 +33,23 @@ if test "$with_boost" -a -d "$with_boost"; then
     AC_SUBST(boost_lib)
 fi
 
+AC_ARG_WITH(apophenia, AS_HELP_STRING([--with-apophenia=PATH],
+	[specify directory containing the Apophenia library)]))
+if test "$with_apophenia" -a -d "$with_apophenia"; then
+    apophenia_include="-I$with_apophenia/include"
+    apophenia_lib="$with_apophenia/lib/libapophenia.a"        
+    AC_SUBST(apophenia_lib)
+    AC_SUBST(apophenia_include)
+fi
+
+AC_ARG_WITH(gsl, AS_HELP_STRING([--with-gsl=PATH],
+	[specify directory containing the Gsl library)]))
+if test "$with_gsl" -a -d "$with_gsl"; then
+    gsl_include="-I$with_gsl/include"
+    gsl_lib="-L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -lgsl -lgslcblas"
+    AC_SUBST(gsl_lib)
+fi
+
 # Only fail on warnings when the --enable-development flag is passed into configure
 AC_ARG_ENABLE(development, AS_HELP_STRING([--enable-development],
 	[Turn on development options, like failing compilation on warnings]))
@@ -44,10 +61,16 @@ fi
 AC_SUBST(AM_CXXFLAGS, "-Wall -Wextra $fail_on_warning -Wno-unknown-pragmas -std=c++11 -g")
 AC_SUBST(CXXFLAGS, "")
 AC_SUBST(CFLAGS, "")
-AC_SUBST(CPPFLAGS, "$CPPFLAGS $boost_include")
-AC_SUBST(LDFLAGS, "$LDFLAGS")
+AC_SUBST(CPPFLAGS, "$CPPFLAGS $boost_include $apophenia_include $gsl_include")
+AC_SUBST(LDFLAGS, "-fopenmp $LDFLAGS")
 
-AC_SUBST(LIBS, "$LIBS")
+AC_SUBST(LIBS, " $apophenia_lib $gsl_lib $LIBS")
+
+# Ensure the GSL is available
+AC_CHECK_HEADERS([gsl/gsl_rng.h],,[AC_MSG_ERROR([GSL library is required: See http://apophenia.info/setup.html])])
+
+# Ensure the Apophenia is available
+AC_CHECK_HEADERS([apop.h],,[AC_MSG_ERROR([Apophenia library is required: https://github.com/b-k/apophenia])])
 
 AC_CONFIG_FILES([Makefile
 		 SeqLib/src/Makefile

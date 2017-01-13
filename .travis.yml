@@ -19,7 +19,8 @@ before_install:
 - sudo apt-get install libgsl0-dev libsqlite3-dev
 
 script: 
-- make apophenia CXX=$COMPILER && ./configure && make CXX=$COMPILER && make install
+- git clone https://github.com/walaj/apophenia-clone && cd apophenia-clone && ./configure && make LIBS="-lgsl -lgslcblas" && make install
+- ./configure && make CXX=$COMPILER && make install
 
 after_failure: "cat /home/travis/builds/walaj/ginseng/apophenia-pkg/Makefile && /home/travis/builds/walaj/ginseng/apophenia-pkg/config.h"
 
