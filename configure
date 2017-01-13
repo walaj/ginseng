@@ -4945,7 +4945,7 @@ fi
 
 if test "$with_gsl" -a -d "$with_gsl"; then
     gsl_include="-I$with_gsl/include"
-    gsl_lib="-L/xchip/gistic/Jeremiah/software/gsl-2.2.1/lib -lgsl -lgslcblas"
+    gsl_lib="-L$with_gsl/lib"
 
 fi
 
@@ -4971,7 +4971,7 @@ CPPFLAGS="$CPPFLAGS $boost_include $apophenia_include $gsl_include"
 LDFLAGS="-fopenmp $LDFLAGS"
 
 
-LIBS=" $apophenia_lib $gsl_lib $LIBS"
+LIBS=" $apophenia_lib $gsl_lib  -lgsl -lgslcblas $LIBS"
 
 
 # Ensure the GSL is available
