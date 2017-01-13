@@ -18,7 +18,7 @@ Table of contents
 Installation
 ------------
 ```
-## note that GNU scientific library (GSL) and libsql is required. See: http://apophenia.info/setup.html
+## The GNU scientific library (GSL) and libsql is required. See: http://apophenia.info/setup.html
 ## If GNU scientific library is not in standard location, set GSL_CONFIG environment
 ## variable to path to gsl-config. Example setup for GSL below (if not already on system):
 ##    wget http://www.localmsp.org/gnu/gsl/gsl-2.2.1.tar.gz ## download GSL
@@ -28,7 +28,7 @@ Installation
 ##    export GSL_CONFIG=$GSL_HOME/bin/gsl-config
 ##    export LD_LIBRARY_PATH=$GSL_HOME/lib:$LD_LIBRARY_PATH
 
-## note that the Apophenia library must be installed after the GSL install
+## The Apophenia library must be installed after the GSL install
 ##
 ##    git clone https://github.com/walaj/apophenia-clone
 ##    cd apophenia-clone
