@@ -20,7 +20,7 @@ before_install:
 
 script: 
 - git clone https://github.com/walaj/apophenia-clone && cd apophenia-clone && ./configure --prefix=`pwd` && make LIBS="-lgsl -lgslcblas" && make install && cd ..
-- ./configure --with-apophenia=apophenia-clone && make CXX=$COMPILER && make install
+- ./configure --with-apophenia=./apophenia-clone && make CXX=$COMPILER && make install
 
 after_failure: "cat /home/travis/builds/walaj/ginseng/apophenia-pkg/Makefile && /home/travis/builds/walaj/ginseng/apophenia-pkg/config.h"
 
