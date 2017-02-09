@@ -19,7 +19,6 @@ suppressMessages(suppressWarnings(require(ggplot2, quietly=TRUE)))
 suppressMessages(suppressWarnings(require(data.table, quietly=TRUE)))
 
 make_plots = function(RFILE, suffix) {
-  
   if (file.exists(RFILE) && file.info(RFILE)$size > 0) {
     
     ## get the distribution of background values
@@ -82,23 +81,27 @@ make_plots = function(RFILE, suffix) {
     setkey(dt2, odds)
     dt2$EXP = factor(dt2$EXP, levels=unique(dt2$EXP))
     write.table(dt2, row.names=FALSE, col.names=TRUE, quote=FALSE, file=paste0(aid,".odds.", suffix, ".csv"))
+
+    badd <- "DUMMY|FRAG|HET"
+    g.odds <- ggplot(data=dt2[!grepl(badd, EXP)], aes(x=EXP, y=odds)) +  geom_errorbar(aes(ymin=low_odds, ymax=hi_odds), color='black') +
+      geom_point(pch=21, size=2, color='black', aes(fill=odds)) +
+      theme(panel.background=element_rect(fill="white", color="black"), axis.text.x = element_text(angle=90, hjust=1)) + xlab("") + ylab("Odds over NULL") + 
+        scale_fill_gradient2(high="darkred", mid="white", low="#003366", midpoint=1, limits=c(0.8, 1.2)) +
+        #scale_color_manual(values=c("no"="black", "depleted"="darkred", "enriched"="darkgreen")) +
+          coord_flip(ylim=c(0, 1.25)) 
     
-    g.odds <- ggplot(data=dt2, aes(x=EXP, y=odds, color=sig)) + geom_point() + geom_errorbar(aes(ymin=low_odds, ymax=hi_odds)) +
-      theme(axis.text.x = element_text(angle=90), legend.position='none') + xlab("") + ylab("Odds over NULL") + coord_flip() +
-        scale_color_manual(values=c("no"="black", "depleted"="darkred", "enriched"="darkgreen"))
-    
-    g.res <- ggplot() + geom_histogram(data=rt[ID > 0], aes(x=Overlap), binwidth=10) +
-      theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0, aes(x=x, y=y), color="red") +
-        geom_line(data=dd, aes(x=x,y=y), color='blue')
+    g.res <- ggplot() + geom_histogram(data=rt[ID > 0 & !grepl(badd, EXP)], aes(x=Overlap), binwidth=10) +
+      theme_bw() + xlab("Overlapping events") + ylab("Count") + facet_wrap(~ EXP, scale='free', nrow=10) + geom_line(data=dum0[!grepl(badd,EXP)], aes(x=x, y=y), color="red") +
+        geom_line(data=dd[!grepl(badd, EXP)], aes(x=x,y=y), color='blue')
 
     if (grepl("intra", suffix))
-      pdf(paste0(aid,".results.", suffix, ".pdf"), height=8, width=6)
+      pdf(paste0(aid,".results.", suffix, ".pdf"), height=8, width=6, useDingbats=FALSE)
     else
-      pdf(paste0(aid,".results.", suffix, ".pdf"), height=20, width=20)      
+      pdf(paste0(aid,".results.", suffix, ".pdf"), height=30, width=30, useDingbats=FALSE)      
     print(g.res)
     dev.off()
 
-    pdf(paste0(aid, ".odds.", suffix, ".pdf"), height=10, width=8)
+    pdf(paste0(aid, ".odds.", suffix, ".pdf"), height=5, width=6, useDingbats=FALSE)
     print(g.odds)
     dev.off()
     

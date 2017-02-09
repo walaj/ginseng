@@ -324,7 +324,7 @@ class Matrix {
   /** Write the matrix to a GZipped tsv file */
   void writeGzip(ogzstream * out) const;
 
-  uint8_t* rand_chr;
+  uint8_t* rand_chr = nullptr;
   
   // map to store sparse matrix entries, per chrom
   std::vector<MVec> m_vec;

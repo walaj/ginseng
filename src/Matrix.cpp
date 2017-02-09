@@ -141,7 +141,12 @@ bool Matrix::allSwaps() {
 
   // do the swaps
   for (S i = 0; i < m_num_steps; i++) {
-    size_t chr = rand_chr[m_mcmc.swap_tried];
+    size_t chr;
+    if (!rand_chr)
+      chr = INTER;
+    else 
+      chr = rand_chr[m_mcmc.swap_tried];
+
     if (chr == INTER)
       doTransSwap();
     else
@@ -189,6 +194,8 @@ void Matrix::doTransSwap() {
   // add the new ones
   m_vec[INTER][i1] = ms1;
   m_vec[INTER][i2] = ms2;
+
+  ++m_mcmc.accepted;
 }
 
 void Matrix::doIntraSwap(size_t chr) {
@@ -762,7 +769,7 @@ std::string Matrix::OutputOverlapsInter(bool exclusive) const {
       }
     }
   }
-  
+
   // not A != B ones
   for (const auto& a : bed_list) {
     for (const auto& b : bed_list) {

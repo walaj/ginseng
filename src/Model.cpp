@@ -93,7 +93,7 @@ void test_apo() {
   //apop_model *est = apop_estimate(mat, apop_negativebinomial);
   //apop_model_show(est);
 
-  const size_t nd = 100;
+  const size_t nd = 100000;
   gsl_rng * rrr = gsl_rng_alloc (gsl_rng_taus);
   apop_data *mat2 = apop_data_alloc(nd, 0, 0);
   // mu = 100, var = 1000, p = .1  r = 111.1111
@@ -102,7 +102,10 @@ void test_apo() {
   double var = 10000;
   double p = mu / var;
   double r = mu*mu / (var - mu);
-  std::cout << " mu " << mu << " var " << var << " P " << p << " r " << r << " drawing " << nd << " points " << std::endl;
+  std::cout << "Formulation 1 -- mu: " << mu << " variance: " << var << std::endl 
+	    << "Formulation 2 (Apop form): probability p: " << p 
+	    << " draws r: " << r << std::endl 
+	    << "... estimating from " << nd << " points " << std::endl;
   for (size_t i = 0; i < nd; ++i) {
     nb2[i] = gsl_ran_negative_binomial(rrr, p, r);
     apop_data_set(mat2, i, -1, nb2[i], NULL, NULL, NULL);

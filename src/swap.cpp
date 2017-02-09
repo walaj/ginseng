@@ -216,9 +216,11 @@ int runSwap(int argc, char** argv) {
   }
   
   // calculate the histogram bins
-  std::cerr << "...precomputing histogram bins" << std::endl;
-  PrecalculateHistogramBins(m);
-  
+  if (!opt::inter_only && m->GetFractionInterChromosomal() < 1) {
+    std::cerr << "...precomputing histogram bins" << std::endl;
+    PrecalculateHistogramBins(m);
+  }
+
   // write the matrix out and original histogram
   std::cerr << "...writing matrices" << std::endl;
   std::ofstream initial;
@@ -263,7 +265,7 @@ int runSwap(int argc, char** argv) {
     threadr->start();
     threadqueue.push_back(threadr);
   }
-  
+
   // wait for the threads to finish
   for (size_t i = 0; i < opt::numThreads; i++) 
     threadqueue[i]->join();
